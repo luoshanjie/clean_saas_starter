@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 
 	"service/internal/app/usecase"
@@ -26,9 +25,9 @@ func (a *App) Close() {
 
 // 手动依赖注入在 composition root 里显式组装各层依赖。
 // wire 已归档为只读状态，当前项目使用手动组装依赖。
-func Build(ctx context.Context, e *echo.Echo, pool *pgxpool.Pool, idGen func() string, now func() time.Time, cfg Config, appLogger logger.Logger) (*App, error) {
-	if pool == nil {
-		return nil, errors.New("nil pgxpool")
+func Build(ctx context.Context, e *echo.Echo, db *DBRuntime, idGen func() string, now func() time.Time, cfg Config, appLogger logger.Logger) (*App, error) {
+	if db == nil {
+		return nil, errors.New("nil database runtime")
 	}
 	if ctx == nil {
 		ctx = context.Background()
@@ -43,7 +42,7 @@ func Build(ctx context.Context, e *echo.Echo, pool *pgxpool.Pool, idGen func() s
 		now = time.Now
 	}
 
-	repos, err := newBootstrapRepos(pool, now, cfg.OSS, cfg.JWTSecret)
+	repos, err := newBootstrapRepos(db, now, cfg.OSS, cfg.JWTSecret)
 	if err != nil {
 		return nil, err
 	}

@@ -16,13 +16,20 @@ import (
 // Config 只存放启动所需的最小配置。
 type Config struct {
 	Addr          string
+	DBDriver      string
 	DBDSN         string
+	SQLitePath    string
 	SkipDB        bool
 	JWTSecret     string
 	OSS           OSSConfig
 	UploadCleanup UploadCleanupConfig
 	Log           logger.Config
 }
+
+const (
+	DBDriverPostgres = "postgres"
+	DBDriverSQLite   = "sqlite"
+)
 
 type UploadCleanupConfig struct {
 	Enabled   bool
@@ -52,7 +59,9 @@ type fileConfig struct {
 		JWTSecret string `yaml:"jwt_secret"`
 	} `yaml:"server"`
 	Database struct {
-		DSN string `yaml:"dsn"`
+		Driver     string `yaml:"driver"`
+		DSN        string `yaml:"dsn"`
+		SQLitePath string `yaml:"sqlite_path"`
 	} `yaml:"database"`
 	OSS struct {
 		Endpoint      string `yaml:"endpoint"`
@@ -84,10 +93,12 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
-		Addr:      getenvDefault("ADDR", ":8080"),
-		DBDSN:     os.Getenv("DB_DSN"),
-		SkipDB:    os.Getenv("SKIP_DB") == "1",
-		JWTSecret: os.Getenv("JWT_SECRET"),
+		Addr:       getenvDefault("ADDR", ":8080"),
+		DBDriver:   normalizeDBDriver(getenvDefault("DB_DRIVER", DBDriverPostgres)),
+		DBDSN:      os.Getenv("DB_DSN"),
+		SQLitePath: getenvDefault("SQLITE_PATH", ""),
+		SkipDB:     os.Getenv("SKIP_DB") == "1",
+		JWTSecret:  os.Getenv("JWT_SECRET"),
 		Log: logger.Config{
 			Dir:           getenvDefault("LOG_DIR", "./logs"),
 			Level:         getenvDefault("LOG_LEVEL", "info"),
@@ -171,6 +182,12 @@ func mergeFileConfig(dst *Config, src fileConfig) {
 	if src.Database.DSN != "" {
 		dst.DBDSN = src.Database.DSN
 	}
+	if src.Database.Driver != "" {
+		dst.DBDriver = normalizeDBDriver(src.Database.Driver)
+	}
+	if src.Database.SQLitePath != "" {
+		dst.SQLitePath = src.Database.SQLitePath
+	}
 	if src.OSS.Endpoint != "" {
 		dst.OSS.Endpoint = src.OSS.Endpoint
 	}
@@ -221,6 +238,12 @@ func applyEnvOverrides(cfg *Config, defaultConsoleFormat string) {
 	}
 	if v := strings.TrimSpace(os.Getenv("DB_DSN")); v != "" {
 		cfg.DBDSN = v
+	}
+	if v := strings.TrimSpace(os.Getenv("DB_DRIVER")); v != "" {
+		cfg.DBDriver = normalizeDBDriver(v)
+	}
+	if v := strings.TrimSpace(os.Getenv("SQLITE_PATH")); v != "" {
+		cfg.SQLitePath = v
 	}
 	if v := strings.TrimSpace(os.Getenv("JWT_SECRET")); v != "" {
 		cfg.JWTSecret = v
@@ -275,5 +298,16 @@ func applyEnvOverrides(cfg *Config, defaultConsoleFormat string) {
 	}
 	if v := strings.TrimSpace(os.Getenv("LOG_CONSOLE")); v != "" {
 		cfg.Log.EnableConsole = !strings.EqualFold(v, "0") && !strings.EqualFold(v, "false")
+	}
+}
+
+func normalizeDBDriver(raw string) string {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "", DBDriverPostgres:
+		return DBDriverPostgres
+	case "sqlite3", DBDriverSQLite:
+		return DBDriverSQLite
+	default:
+		return strings.ToLower(strings.TrimSpace(raw))
 	}
 }

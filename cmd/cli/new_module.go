@@ -102,7 +102,7 @@ func buildModuleScaffold(spec moduleSpec, migrationPrefix string, withTest bool)
 			Template: sqlTemplate,
 		},
 		{
-			Path:     filepath.Join("migrations", migrationPrefix+"_add_"+spec.PluralName+".sql"),
+			Path:     filepath.Join("migrations", "pgsql", migrationPrefix+"_add_"+spec.PluralName+".sql"),
 			Template: migrationTemplate,
 		},
 	}

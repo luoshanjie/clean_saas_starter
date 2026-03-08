@@ -67,7 +67,9 @@ go run ./cmd/cli new-project --name my-saas --output ../my-saas
   cmd/
   internal/
   db/
-  migrations/
+migrations/
+  pgsql/
+  sqlite/
   docs/
   Makefile
   go.mod
@@ -123,7 +125,7 @@ internal/app/usecase/<name>.go
 internal/repo/pg/<name>_repo_pg.go
 internal/delivery/http/handler/<name>_handler.go
 db/query/<name>.sql
-migrations/<timestamp>_add_<plural>.sql
+migrations/pgsql/<timestamp>_add_<plural>.sql
 ```
 
 ### 设计原则

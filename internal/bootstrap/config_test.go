@@ -33,6 +33,23 @@ func TestOSSConfigEnabled(t *testing.T) {
 	})
 }
 
+func TestNormalizeDBDriver(t *testing.T) {
+	cases := map[string]string{
+		"":          DBDriverPostgres,
+		"postgres":  DBDriverPostgres,
+		"POSTGRES":  DBDriverPostgres,
+		"sqlite":    DBDriverSQLite,
+		"sqlite3":   DBDriverSQLite,
+		"SQLITE3":   DBDriverSQLite,
+		"custom-db": "custom-db",
+	}
+	for in, want := range cases {
+		if got := normalizeDBDriver(in); got != want {
+			t.Fatalf("normalizeDBDriver(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 func TestLoadConfig_FromYAML(t *testing.T) {
 	clearConfigEnv(t)
 	dir := t.TempDir()
@@ -42,7 +59,9 @@ server:
   addr: ":9527"
   jwt_secret: "yaml_secret"
 database:
+  driver: "sqlite3"
   dsn: "postgres://u:p@10.0.0.1:5432/service?sslmode=disable"
+  sqlite_path: "./var/service.db"
 oss:
   endpoint: "127.0.0.1:9000"
   access_key: "minioadmin"
@@ -74,6 +93,12 @@ log:
 	}
 	if cfg.DBDSN != "postgres://u:p@10.0.0.1:5432/service?sslmode=disable" {
 		t.Fatalf("unexpected dsn: %s", cfg.DBDSN)
+	}
+	if cfg.DBDriver != DBDriverSQLite {
+		t.Fatalf("unexpected db driver: %s", cfg.DBDriver)
+	}
+	if cfg.SQLitePath != "./var/service.db" {
+		t.Fatalf("unexpected sqlite path: %s", cfg.SQLitePath)
 	}
 	if cfg.OSS.Endpoint != "127.0.0.1:9000" {
 		t.Fatalf("unexpected oss endpoint: %s", cfg.OSS.Endpoint)
@@ -109,7 +134,9 @@ log:
 
 	t.Setenv("APP_CONFIG_FILE", configFile)
 	t.Setenv("ADDR", ":9000")
+	t.Setenv("DB_DRIVER", "postgres")
 	t.Setenv("DB_DSN", "postgres://env:env@10.0.0.2:5432/service?sslmode=disable")
+	t.Setenv("SQLITE_PATH", "./var/env.db")
 	t.Setenv("JWT_SECRET", "env_secret")
 	t.Setenv("LOG_LEVEL", "debug")
 	t.Setenv("LOG_CONSOLE", "1")
@@ -128,6 +155,12 @@ log:
 	if cfg.DBDSN != "postgres://env:env@10.0.0.2:5432/service?sslmode=disable" {
 		t.Fatalf("unexpected dsn: %s", cfg.DBDSN)
 	}
+	if cfg.DBDriver != DBDriverPostgres {
+		t.Fatalf("unexpected db driver: %s", cfg.DBDriver)
+	}
+	if cfg.SQLitePath != "./var/env.db" {
+		t.Fatalf("unexpected sqlite path: %s", cfg.SQLitePath)
+	}
 	if cfg.Log.Level != "debug" {
 		t.Fatalf("unexpected log level: %s", cfg.Log.Level)
 	}
@@ -143,7 +176,9 @@ func TestLoadConfig_EnvOnly(t *testing.T) {
 	clearConfigEnv(t)
 	t.Setenv("APP_CONFIG_FILE", filepath.Join(t.TempDir(), "not-found.yaml"))
 	t.Setenv("ADDR", ":9527")
+	t.Setenv("DB_DRIVER", "sqlite")
 	t.Setenv("DB_DSN", "postgres://env:env@10.0.0.2:5432/service?sslmode=disable")
+	t.Setenv("SQLITE_PATH", "./var/local.db")
 	t.Setenv("JWT_SECRET", "env_secret")
 	t.Setenv("LOG_DIR", "/tmp/logs")
 	t.Setenv("LOG_CONSOLE", "0")
@@ -166,6 +201,12 @@ func TestLoadConfig_EnvOnly(t *testing.T) {
 	}
 	if cfg.DBDSN != "postgres://env:env@10.0.0.2:5432/service?sslmode=disable" {
 		t.Fatalf("unexpected dsn: %s", cfg.DBDSN)
+	}
+	if cfg.DBDriver != DBDriverSQLite {
+		t.Fatalf("unexpected db driver: %s", cfg.DBDriver)
+	}
+	if cfg.SQLitePath != "./var/local.db" {
+		t.Fatalf("unexpected sqlite path: %s", cfg.SQLitePath)
 	}
 	if cfg.Log.Dir != "/tmp/logs" {
 		t.Fatalf("unexpected log dir: %s", cfg.Log.Dir)
@@ -205,7 +246,9 @@ func clearConfigEnv(t *testing.T) {
 	keys := []string{
 		"APP_CONFIG_FILE",
 		"ADDR",
+		"DB_DRIVER",
 		"DB_DSN",
+		"SQLITE_PATH",
 		"SKIP_DB",
 		"JWT_SECRET",
 		"APP_ENV",

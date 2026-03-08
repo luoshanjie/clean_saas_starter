@@ -3,7 +3,7 @@ version: "2"
 sql:
   - engine: "postgresql"
     schema:
-      - "migrations/demo_schema_init.sql"
+      - "migrations/pgsql/demo_schema_init.sql"
     queries:
       - "db/query/audit.sql"
       - "db/query/auth.sql"

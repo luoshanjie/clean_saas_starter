@@ -38,7 +38,7 @@ func TestBuildModuleScaffold(t *testing.T) {
 	if files[0].Path != "internal/domain/model/post.go" {
 		t.Fatalf("unexpected first scaffold path: %s", files[0].Path)
 	}
-	if files[6].Path != "migrations/20260308000000_add_posts.sql" {
+	if files[6].Path != "migrations/pgsql/20260308000000_add_posts.sql" {
 		t.Fatalf("unexpected migration path: %s", files[6].Path)
 	}
 }

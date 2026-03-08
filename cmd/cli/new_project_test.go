@@ -26,12 +26,12 @@ func TestScaffoldProject(t *testing.T) {
 	srcDir := t.TempDir()
 	outDir := filepath.Join(t.TempDir(), "my-saas")
 
-	mustWriteFile(t, filepath.Join(srcDir, ".env.example"), "DB_DSN=postgres://postgres:postgres@127.0.0.1:5432/service?sslmode=disable\n")
+	mustWriteFile(t, filepath.Join(srcDir, ".env.example"), "DB_DRIVER=postgres\nDB_DSN=postgres://postgres:postgres@127.0.0.1:5432/service?sslmode=disable\n# SQLITE_PATH=./var/service.db\n")
 	mustWriteFile(t, filepath.Join(srcDir, "go.mod"), "module service\n")
 	mustWriteFile(t, filepath.Join(srcDir, "Makefile"), "APP_NAME := service\nPROJECT := service\nSRC := cmd/service/main.go\n")
 	mustWriteFile(t, filepath.Join(srcDir, "cmd", "service", "main.go"), "package main\n\nimport _ \"service/internal/bootstrap\"\n")
-	mustWriteFile(t, filepath.Join(srcDir, "app.yaml.example"), "database:\n  dsn: \"postgres://user:password@127.0.0.1:5432/service?sslmode=disable\"\n")
-	mustWriteFile(t, filepath.Join(srcDir, "migrations", "0000_create_db.sql"), "CREATE DATABASE service_dev\n")
+	mustWriteFile(t, filepath.Join(srcDir, "app.yaml.example"), "database:\n  driver: \"postgres\"\n  dsn: \"postgres://user:password@127.0.0.1:5432/service?sslmode=disable\"\n  # sqlite_path: \"./var/service.db\"\n")
+	mustWriteFile(t, filepath.Join(srcDir, "migrations", "pgsql", "0000_create_db.sql"), "CREATE DATABASE service_dev\n")
 	mustWriteFile(t, filepath.Join(srcDir, ".env"), "JWT_SECRET=secret\n")
 	mustWriteFile(t, filepath.Join(srcDir, ".git", "config"), "[core]\n")
 
@@ -48,7 +48,10 @@ func TestScaffoldProject(t *testing.T) {
 	assertFileContains(t, filepath.Join(outDir, "Makefile"), "SRC := cmd/my-saas/main.go")
 	assertFileContains(t, filepath.Join(outDir, "cmd", "my-saas", "main.go"), "\"github.com/acme/my-saas/internal/bootstrap\"")
 	assertFileContains(t, filepath.Join(outDir, "app.yaml.example"), ":5432/my_saas?")
-	assertFileContains(t, filepath.Join(outDir, "migrations", "0000_create_db.sql"), "CREATE DATABASE my_saas_dev")
+	assertFileContains(t, filepath.Join(outDir, "app.yaml.example"), "./var/my_saas.db")
+	assertFileContains(t, filepath.Join(outDir, ".env.example"), "DB_DRIVER=postgres")
+	assertFileContains(t, filepath.Join(outDir, ".env.example"), "./var/my_saas.db")
+	assertFileContains(t, filepath.Join(outDir, "migrations", "pgsql", "0000_create_db.sql"), "CREATE DATABASE my_saas_dev")
 
 	if _, err := os.Stat(filepath.Join(outDir, ".env")); !os.IsNotExist(err) {
 		t.Fatalf("expected .env to be skipped")
@@ -60,7 +63,7 @@ func TestScaffoldProject(t *testing.T) {
 
 func TestDetectSourceProjectMeta(t *testing.T) {
 	srcDir := t.TempDir()
-	mustWriteFile(t, filepath.Join(srcDir, ".env.example"), "DB_DSN=postgres://postgres:postgres@127.0.0.1:5432/service?sslmode=disable\n")
+	mustWriteFile(t, filepath.Join(srcDir, ".env.example"), "DB_DRIVER=postgres\nDB_DSN=postgres://postgres:postgres@127.0.0.1:5432/service?sslmode=disable\n# SQLITE_PATH=./var/service.db\n")
 	mustWriteFile(t, filepath.Join(srcDir, "go.mod"), "module github.com/acme/source\n")
 	mustWriteFile(t, filepath.Join(srcDir, "Makefile"), "APP_NAME := source\nPROJECT := source\n")
 	mustWriteFile(t, filepath.Join(srcDir, "cmd", "source", "main.go"), "package main\n")

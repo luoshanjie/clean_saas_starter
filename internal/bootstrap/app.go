@@ -27,16 +27,19 @@ func Run(ctx context.Context) error {
 
 	e := NewEcho(appLogger)
 	if !cfg.SkipDB {
-		if cfg.DBDSN == "" {
+		if cfg.DBDriver == DBDriverPostgres && cfg.DBDSN == "" {
 			return errors.New("DB_DSN is empty")
 		}
-		pool, err := InitDB(ctx, cfg.DBDSN)
+		if cfg.DBDriver == DBDriverSQLite && cfg.SQLitePath == "" {
+			return errors.New("SQLITE_PATH is empty")
+		}
+		db, err := InitDB(ctx, cfg)
 		if err != nil {
 			return err
 		}
-		defer pool.Close()
+		defer db.Close()
 
-		app, err := Build(ctx, e, pool, newID, time.Now, cfg, appLogger)
+		app, err := Build(ctx, e, db, newID, time.Now, cfg, appLogger)
 		if err != nil {
 			return err
 		}

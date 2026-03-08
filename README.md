@@ -25,6 +25,15 @@ Current core stack:
 - PostgreSQL
 - MinIO (optional, only required when file storage is enabled)
 
+Database policy:
+
+- PostgreSQL is the recommended production path
+- PostgreSQL can provide an extra database-level tenant isolation layer through RLS
+- SQLite is intended for local development, demos, and low-friction onboarding
+- SQLite does not provide PostgreSQL-style database-level RLS protection
+- tenant isolation in SQLite mode must rely on application and repository logic
+- SQLite bootstrap wiring is being added incrementally; the current runtime path still boots with PostgreSQL
+
 Object storage policy:
 
 - the framework ships with a built-in MinIO adapter
@@ -76,9 +85,10 @@ make dev
 Before `make dev`, make sure:
 
 1. your database has been created
-2. SQL in `migrations/` has been executed
-3. `.env` or `app.yaml` points to the correct database
-4. configure OSS only if you want to enable file upload and download routes
+2. for PostgreSQL, SQL in `migrations/pgsql/` has been executed
+3. SQLite baseline files are available under `migrations/sqlite/`
+4. `.env` or `app.yaml` points to the correct database
+5. configure OSS only if you want to enable file upload and download routes
 
 ### Generate A Module In The Current Project
 
@@ -101,7 +111,7 @@ internal/app/usecase/post.go
 internal/repo/pg/post_repo_pg.go
 internal/delivery/http/handler/post_handler.go
 db/query/post.sql
-migrations/<timestamp>_add_posts.sql
+migrations/pgsql/<timestamp>_add_posts.sql
 ```
 
 When `--with-test` is enabled, it also generates:
@@ -144,7 +154,7 @@ Main directories:
 - `db/query/`
   - sqlc query definitions
 - `migrations/`
-  - database migrations
+  - database migrations, including PostgreSQL and SQLite baselines
 - `docs/`
   - design and scaffold planning documents
 
@@ -154,6 +164,8 @@ Important docs:
   - kernel vs business-module boundary
 - [docs/oss-optional-plan.md](docs/oss-optional-plan.md)
   - make object storage optional before SQLite support
+- [docs/sqlite-support-plan.md](docs/sqlite-support-plan.md)
+  - add SQLite as the low-friction local database path
 - [docs/scaffolding-cli-plan.md](docs/scaffolding-cli-plan.md)
   - `new-project` and `new-module` CLI plan
 

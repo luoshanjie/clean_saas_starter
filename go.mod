@@ -12,6 +12,7 @@ require (
 	github.com/dgraph-io/ristretto/v2 v2.1.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/labstack/echo/v4 v4.15.0
+	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/minio/minio-go/v7 v7.0.95
 	github.com/swaggo/echo-swagger v1.4.1
 )
