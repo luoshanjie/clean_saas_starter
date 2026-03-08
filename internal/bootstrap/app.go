@@ -1,0 +1,53 @@
+package bootstrap
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/google/uuid"
+
+	"service/pkg/logger"
+)
+
+// Run 负责启动应用：加载配置 -> 初始化依赖 -> 组装路由 -> 启动服务。
+func Run(ctx context.Context) error {
+	cfg, err := LoadConfig()
+	if err != nil {
+		return err
+	}
+	if cfg.JWTSecret == "" {
+		return errors.New("JWT_SECRET is empty")
+	}
+	logFactory := logger.NewLogFactory(cfg.Log)
+	appLogger := logFactory.Get("app")
+	if appLogger == nil {
+		appLogger = logger.NewNopLogger()
+	}
+
+	e := NewEcho(appLogger)
+	if !cfg.SkipDB {
+		if cfg.DBDSN == "" {
+			return errors.New("DB_DSN is empty")
+		}
+		pool, err := InitDB(ctx, cfg.DBDSN)
+		if err != nil {
+			return err
+		}
+		defer pool.Close()
+
+		app, err := Build(ctx, e, pool, newID, time.Now, cfg, appLogger)
+		if err != nil {
+			return err
+		}
+		defer app.Close()
+	}
+	RegisterSwagger(e)
+
+	appLogger.Info("server starting", "addr", cfg.Addr)
+	return e.Start(cfg.Addr)
+}
+
+func newID() string {
+	return uuid.NewString()
+}

@@ -1,0 +1,20 @@
+services:
+  service:
+    image: ${IMAGE:-service:latest}
+    container_name: container_service
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    ports:
+      - "${HOST_PORT:-9527}:9527"
+    environment:
+      # 生产/演示环境统一使用 app.yaml。
+      APP_CONFIG_FILE: ${APP_CONFIG_FILE:-/app/config/app.yaml}
+    volumes:
+      # 映射日志目录，便于在宿主机排查
+      - ./logs:/app/logs
+      # 挂载运行配置文件
+      - ./app.yaml:/app/config/app.yaml:ro

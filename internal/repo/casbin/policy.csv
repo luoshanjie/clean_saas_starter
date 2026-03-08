@@ -1,0 +1,12 @@
+p, platform_op, platform.tenant.create, allow
+p, platform_op, platform.tenant.disable, allow
+p, platform_op, platform.tenant.list, allow
+p, platform_op, platform.tenant.update, allow
+p, platform_op, platform.tenant.reset_auth, allow
+p, platform_op, platform.system.config, allow
+
+p, tenant_admin, tenant.user.manage, allow
+p, tenant_admin, tenant.role.manage, allow
+p, tenant_admin, tenant.audit.view, allow
+
+p, tenant_member, tenant.profile.manage, allow

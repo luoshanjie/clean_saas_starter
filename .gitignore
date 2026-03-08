@@ -1,0 +1,43 @@
+# Go build artifacts
+/build/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go test
+*.test
+*.out
+cover.out
+coverage.out
+
+# Go workspace
+/go.work
+/go.work.sum
+
+# Go cache
+.gocache/
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+.VSCodeCounter/
+
+# Logs
+*.log
+logs/
+
+# Env files
+.env
+.env.*
+!.env.example
+app.yaml
+!app.yaml.example
+
+# AI
+AGENTS.md
+

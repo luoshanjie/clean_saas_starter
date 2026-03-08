@@ -1,0 +1,29 @@
+# Example runtime config.
+# Copy to app.yaml in deployment and fill real values.
+
+server:
+  addr: ":9527"
+  jwt_secret: "dev_secret"
+
+database:
+  dsn: "postgres://user:password@127.0.0.1:5432/service?sslmode=disable"
+
+log:
+  dir: "/app/logs"
+  level: "info"
+  format: "json"
+  console_format: "json"
+  console: false
+
+oss:
+  endpoint: "127.0.0.1:9000"
+  access_key: "your_minio_access_key"
+  secret_key: "your_oss_secret_key"
+  bucket: "your-bucket-1234567890"
+  public_base_url: "http://127.0.0.1:9000/your-bucket-1234567890"
+  use_ssl: false
+
+upload_cleanup:
+  enabled: true
+  interval_sec: 600
+  batch_size: 200

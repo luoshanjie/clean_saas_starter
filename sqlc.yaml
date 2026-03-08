@@ -1,0 +1,20 @@
+version: "2"
+
+sql:
+  - engine: "postgresql"
+    schema:
+      - "migrations/demo_schema_init.sql"
+    queries:
+      - "db/query/audit.sql"
+      - "db/query/auth.sql"
+      - "db/query/files.sql"
+      - "db/query/ping.sql"
+      - "db/query/tenant.sql"
+    gen:
+      go:
+        package: "sqlcpg"
+        out: "internal/repo/pg/sqlcpg"
+        sql_package: "pgx/v5"
+        emit_interface: false
+        emit_json_tags: true
+        emit_exact_table_names: true
