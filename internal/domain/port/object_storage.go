@@ -31,9 +31,15 @@ type ResolveFileOutput struct {
 	ObjectKey string
 }
 
+type DeleteObjectInput struct {
+	Bucket    string
+	ObjectKey string
+}
+
 type ObjectStorage interface {
 	PresignUpload(ctx context.Context, in PresignUploadInput) (*PresignUploadOutput, error)
 	PresignDownload(ctx context.Context, in PresignDownloadInput) (*PresignDownloadOutput, error)
 	ResolveFile(ctx context.Context, in ResolveFileInput) (*ResolveFileOutput, error)
+	DeleteObject(ctx context.Context, in DeleteObjectInput) error
 	DeleteByFileURL(ctx context.Context, fileURL string) error
 }

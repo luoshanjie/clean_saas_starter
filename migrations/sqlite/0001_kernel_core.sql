@@ -69,7 +69,7 @@ CREATE INDEX IF NOT EXISTS idx_rbac_tenant ON rbac_policies (tenant_id);
 
 CREATE TABLE IF NOT EXISTS files (
     id         TEXT PRIMARY KEY,
-    tenant_id  TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    tenant_id  TEXT NULL REFERENCES tenants(id) ON DELETE SET NULL,
     bucket     TEXT NOT NULL,
     object_key TEXT NOT NULL,
     size       INTEGER NOT NULL DEFAULT 0,

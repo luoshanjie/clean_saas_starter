@@ -34,6 +34,7 @@ func registerRoutes(e *echo.Echo, hs *bootstrapHandlers, repos *bootstrapRepos, 
 		protected.POST("/file/upload/session/create", hs.fileHandler.UploadSessionCreate)
 		protected.POST("/file/upload/confirm", hs.fileHandler.UploadConfirm)
 		protected.POST("/file/download/presign", hs.fileHandler.DownloadPresign)
+		protected.POST("/file/delete", hs.fileHandler.Delete)
 		protected.POST("/file/upload/cleanup-expired", hs.fileHandler.CleanupExpired, middleware.RequirePermission(permChecker, "platform.system.config"))
 	}
 }

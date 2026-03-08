@@ -23,6 +23,10 @@ func wireFileHandlers(h *bootstrapHandlers, d handlerDeps) {
 			Storage:  d.repos.objectStorage,
 			FileRepo: d.repos.fileRepo,
 		},
+		DeleteUC: &usecase.FileDeleteUsecase{
+			Storage:  d.repos.objectStorage,
+			FileRepo: d.repos.fileRepo,
+		},
 		CleanupExpiredUC: &usecase.CleanupExpiredUploadSessionsUsecase{
 			Storage: d.repos.objectStorage,
 			Repo:    d.repos.fileUploadSessionRepo,

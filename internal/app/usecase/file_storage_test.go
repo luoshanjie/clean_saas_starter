@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -14,6 +15,8 @@ type mockFileStorage struct {
 	resolveOut         *port.ResolveFileOutput
 	presignDownloadOut *port.PresignDownloadOutput
 	lastDownloadInput  port.PresignDownloadInput
+	lastDeleteInput    port.DeleteObjectInput
+	deleteErr          error
 }
 
 func (m *mockFileStorage) PresignUpload(ctx context.Context, in port.PresignUploadInput) (*port.PresignUploadOutput, error) {
@@ -33,6 +36,11 @@ func (m *mockFileStorage) ResolveFile(ctx context.Context, in port.ResolveFileIn
 		return m.resolveOut, nil
 	}
 	return &port.ResolveFileOutput{Bucket: "b1", ObjectKey: "obj-1"}, nil
+}
+
+func (m *mockFileStorage) DeleteObject(ctx context.Context, in port.DeleteObjectInput) error {
+	m.lastDeleteInput = in
+	return m.deleteErr
 }
 
 func (m *mockFileStorage) DeleteByFileURL(ctx context.Context, fileURL string) error { return nil }
@@ -65,9 +73,11 @@ func (m *mockFileUploadSessionRepo) SetLastError(ctx context.Context, id, lastEr
 }
 
 type mockFileRepo struct {
-	file     *model.File
-	createIn *model.File
-	getErr   error
+	file      *model.File
+	createIn  *model.File
+	getErr    error
+	deleted   string
+	deleteErr error
 }
 
 func (m *mockFileRepo) Create(ctx context.Context, f *model.File) error {
@@ -85,6 +95,15 @@ func (m *mockFileRepo) GetByID(ctx context.Context, id string) (*model.File, err
 		return nil, domainErr.ErrNotFound
 	}
 	return m.file, nil
+}
+
+func (m *mockFileRepo) DeleteByID(ctx context.Context, id string) error {
+	if m.deleteErr != nil {
+		return m.deleteErr
+	}
+	m.deleted = id
+	m.file = nil
+	return nil
 }
 
 func TestFileUploadConfirmUsecase_CreatesFileAsset(t *testing.T) {
@@ -158,5 +177,79 @@ func TestFileDownloadPresignUsecase_LoadsByFileID(t *testing.T) {
 	}
 	if storage.lastDownloadInput.ObjectKey != "biz/20260308/file.png" {
 		t.Fatalf("expected object key download, got %+v", storage.lastDownloadInput)
+	}
+}
+
+func TestFileDownloadPresignUsecase_FallsBackToFileURL(t *testing.T) {
+	storage := &mockFileStorage{
+		presignDownloadOut: &port.PresignDownloadOutput{DownloadURL: "https://download.local/file-url"},
+	}
+	uc := &FileDownloadPresignUsecase{
+		Storage: storage,
+	}
+
+	out, err := uc.Execute(context.Background(), FileDownloadPresignInput{
+		FileURL: "https://storage.local/bucket/path/to/file.png",
+	})
+	if err != nil {
+		t.Fatalf("Execute error: %v", err)
+	}
+	if out.DownloadURL == "" {
+		t.Fatalf("expected download url")
+	}
+	if storage.lastDownloadInput.FileURL != "https://storage.local/bucket/path/to/file.png" {
+		t.Fatalf("expected file url fallback, got %+v", storage.lastDownloadInput)
+	}
+}
+
+func TestFileDeleteUsecase_DeletesObjectThenRecord(t *testing.T) {
+	fileRepo := &mockFileRepo{
+		file: &model.File{
+			ID:        "f1",
+			Bucket:    "bucket-1",
+			ObjectKey: "biz/file.png",
+		},
+	}
+	storage := &mockFileStorage{}
+	uc := &FileDeleteUsecase{
+		Storage:  storage,
+		FileRepo: fileRepo,
+	}
+
+	out, err := uc.Execute(context.Background(), FileDeleteInput{FileID: "f1"})
+	if err != nil {
+		t.Fatalf("Execute error: %v", err)
+	}
+	if out.Status != "ok" {
+		t.Fatalf("unexpected output: %+v", out)
+	}
+	if storage.lastDeleteInput.ObjectKey != "biz/file.png" || storage.lastDeleteInput.Bucket != "bucket-1" {
+		t.Fatalf("unexpected delete object input: %+v", storage.lastDeleteInput)
+	}
+	if fileRepo.deleted != "f1" {
+		t.Fatalf("expected file record to be deleted, got %q", fileRepo.deleted)
+	}
+}
+
+func TestFileDeleteUsecase_KeepsRecordWhenObjectDeleteFails(t *testing.T) {
+	fileRepo := &mockFileRepo{
+		file: &model.File{
+			ID:        "f1",
+			Bucket:    "bucket-1",
+			ObjectKey: "biz/file.png",
+		},
+	}
+	storage := &mockFileStorage{deleteErr: errors.New("remove failed")}
+	uc := &FileDeleteUsecase{
+		Storage:  storage,
+		FileRepo: fileRepo,
+	}
+
+	_, err := uc.Execute(context.Background(), FileDeleteInput{FileID: "f1"})
+	if err == nil {
+		t.Fatalf("expected delete error")
+	}
+	if fileRepo.deleted != "" {
+		t.Fatalf("expected file record to remain when object delete fails")
 	}
 }

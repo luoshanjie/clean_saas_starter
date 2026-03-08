@@ -96,7 +96,7 @@ CREATE POLICY rbac_tenant_isolation ON rbac_policies
 
 CREATE TABLE IF NOT EXISTS files (
     id         uuid PRIMARY KEY,
-    tenant_id  uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    tenant_id  uuid NULL REFERENCES tenants(id) ON DELETE SET NULL,
     bucket     text NOT NULL,
     object_key text NOT NULL,
     size       bigint NOT NULL DEFAULT 0,

@@ -18,6 +18,7 @@ type FileHandler struct {
 	UploadSessionCreateUC *usecase.FileUploadSessionCreateUsecase
 	UploadConfirmUC       *usecase.FileUploadConfirmUsecase
 	DownloadPresignUC     *usecase.FileDownloadPresignUsecase
+	DeleteUC              *usecase.FileDeleteUsecase
 	CleanupExpiredUC      *usecase.CleanupExpiredUploadSessionsUsecase
 }
 
@@ -42,6 +43,10 @@ type fileDownloadPresignRequest struct {
 
 type fileUploadCleanupRequest struct {
 	Limit int `json:"limit"`
+}
+
+type fileDeleteRequest struct {
+	FileID string `json:"file_id"`
 }
 
 func (h *FileHandler) UploadSessionCreate(c echo.Context) error {
@@ -124,6 +129,24 @@ func (h *FileHandler) DownloadPresign(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, resp.OKWithRequestID(middleware.GetRequestID(c), map[string]any{
 		"download_url": out.DownloadURL,
+	}))
+}
+
+func (h *FileHandler) Delete(c echo.Context) error {
+	middleware.SetLogModule(c, "file")
+	middleware.SetLogAction(c, "delete")
+	var req fileDeleteRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusOK, resp.ErrorWithRequestID(middleware.GetRequestID(c), resp.CodeValidation, "bad request"))
+	}
+	out, err := h.DeleteUC.Execute(c.Request().Context(), usecase.FileDeleteInput{
+		FileID: req.FileID,
+	})
+	if err != nil {
+		return h.fileError(c, err)
+	}
+	return c.JSON(http.StatusOK, resp.OKWithRequestID(middleware.GetRequestID(c), map[string]any{
+		"status": out.Status,
 	}))
 }
 

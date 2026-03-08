@@ -121,6 +121,21 @@ func (s *MinIOObjectStorage) ResolveFile(_ context.Context, in port.ResolveFileI
 	}, nil
 }
 
+func (s *MinIOObjectStorage) DeleteObject(ctx context.Context, in port.DeleteObjectInput) error {
+	if s == nil || s.client == nil {
+		return domainErr.ErrValidation
+	}
+	objectKey := strings.TrimSpace(in.ObjectKey)
+	if objectKey == "" {
+		return domainErr.ErrValidation
+	}
+	bucket := strings.TrimSpace(in.Bucket)
+	if bucket == "" {
+		bucket = s.bucket
+	}
+	return s.client.RemoveObject(ctx, bucket, objectKey, minio.RemoveObjectOptions{})
+}
+
 func (s *MinIOObjectStorage) DeleteByFileURL(ctx context.Context, fileURL string) error {
 	if s == nil || s.client == nil {
 		return domainErr.ErrValidation
@@ -129,7 +144,10 @@ func (s *MinIOObjectStorage) DeleteByFileURL(ctx context.Context, fileURL string
 	if err != nil {
 		return err
 	}
-	return s.client.RemoveObject(ctx, s.bucket, objectKey, minio.RemoveObjectOptions{})
+	return s.DeleteObject(ctx, port.DeleteObjectInput{
+		Bucket:    s.bucket,
+		ObjectKey: objectKey,
+	})
 }
 
 func (s *MinIOObjectStorage) buildFileURL(objectKey string) (string, error) {

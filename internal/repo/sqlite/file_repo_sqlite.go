@@ -23,7 +23,7 @@ func (r *FileRepoSQLite) Create(ctx context.Context, f *model.File) error {
 INSERT INTO files (id, tenant_id, bucket, object_key, size, mime, owner_type, owner_id, created_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		f.ID,
-		f.TenantID,
+		nullableString(f.TenantID),
 		f.Bucket,
 		f.ObjectKey,
 		f.Size,
@@ -37,7 +37,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 
 func (r *FileRepoSQLite) GetByID(ctx context.Context, id string) (*model.File, error) {
 	row := r.DB.QueryRowContext(ctx, `
-SELECT id, tenant_id, bucket, object_key, size, mime, owner_type, owner_id, created_at
+SELECT id, COALESCE(tenant_id, ''), bucket, object_key, size, mime, owner_type, owner_id, created_at
 FROM files
 WHERE id = ?`, id)
 	var (
@@ -53,4 +53,19 @@ WHERE id = ?`, id)
 		return nil, err
 	}
 	return &f, nil
+}
+
+func (r *FileRepoSQLite) DeleteByID(ctx context.Context, id string) error {
+	res, err := r.DB.ExecContext(ctx, `DELETE FROM files WHERE id = ?`, id)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return mapNotFound(sql.ErrNoRows)
+	}
+	return nil
 }

@@ -47,6 +47,7 @@ Object storage policy:
 - object storage is optional; the service can run without OSS
 - cloud-vendor SDKs are not bundled into the main scaffold
 - Alibaba Cloud, Tencent Cloud, Cloudflare R2, AWS S3, or other providers should be added by users in their own adapters
+- download presign should prefer `file_id` as the stable input; `file_url` is kept temporarily for compatibility
 
 Current `oss` config fields:
 

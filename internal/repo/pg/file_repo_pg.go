@@ -9,7 +9,6 @@ import (
 
 	domainErr "service/internal/domain/errors"
 	"service/internal/domain/model"
-	"service/internal/repo/pg/sqlcpg"
 )
 
 type FileRepoPG struct {
@@ -18,12 +17,7 @@ type FileRepoPG struct {
 
 func (r *FileRepoPG) Create(ctx context.Context, f *model.File) error {
 	return withRLS(ctx, r.DB, func(tx pgx.Tx) error {
-		q := sqlcpg.New(tx)
 		id, err := parseUUIDText(f.ID)
-		if err != nil {
-			return err
-		}
-		tenantID, err := parseUUIDText(f.TenantID)
 		if err != nil {
 			return err
 		}
@@ -31,17 +25,21 @@ func (r *FileRepoPG) Create(ctx context.Context, f *model.File) error {
 		if err != nil {
 			return err
 		}
-		return q.FileCreate(ctx, sqlcpg.FileCreateParams{
-			ID:        id,
-			TenantID:  tenantID,
-			Bucket:    f.Bucket,
-			ObjectKey: f.ObjectKey,
-			Size:      f.Size,
-			Mime:      f.Mime,
-			OwnerType: f.OwnerType,
-			OwnerID:   ownerID,
-			CreatedAt: pgTimestamptz(f.CreatedAt),
-		})
+		_, err = tx.Exec(ctx, `
+INSERT INTO files (id, tenant_id, bucket, object_key, size, mime, owner_type, owner_id, created_at)
+VALUES ($1, NULLIF($2, '')::uuid, $3, $4, $5, $6, $7, $8, $9)
+`,
+			id,
+			f.TenantID,
+			f.Bucket,
+			f.ObjectKey,
+			f.Size,
+			f.Mime,
+			f.OwnerType,
+			ownerID,
+			pgTimestamptz(f.CreatedAt),
+		)
+		return err
 	})
 }
 
@@ -49,7 +47,7 @@ func (r *FileRepoPG) GetByID(ctx context.Context, id string) (*model.File, error
 	var out *model.File
 	err := withRLS(ctx, r.DB, func(tx pgx.Tx) error {
 		row := tx.QueryRow(ctx, `
-SELECT id::text, tenant_id::text, bucket, object_key, size, mime, owner_type, owner_id::text, created_at
+SELECT id::text, COALESCE(tenant_id::text, ''), bucket, object_key, size, mime, owner_type, owner_id::text, created_at
 FROM files
 WHERE id = $1::uuid
 `, id)
@@ -67,4 +65,17 @@ WHERE id = $1::uuid
 		return nil, err
 	}
 	return out, nil
+}
+
+func (r *FileRepoPG) DeleteByID(ctx context.Context, id string) error {
+	return withRLS(ctx, r.DB, func(tx pgx.Tx) error {
+		tag, err := tx.Exec(ctx, `DELETE FROM files WHERE id = $1::uuid`, id)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			return domainErr.ErrNotFound
+		}
+		return nil
+	})
 }

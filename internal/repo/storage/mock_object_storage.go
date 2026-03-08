@@ -63,6 +63,13 @@ func (m *MockObjectStorage) ResolveFile(_ context.Context, in port.ResolveFileIn
 	}, nil
 }
 
+func (m *MockObjectStorage) DeleteObject(_ context.Context, in port.DeleteObjectInput) error {
+	if strings.TrimSpace(in.ObjectKey) == "" {
+		return domainErr.ErrValidation
+	}
+	return nil
+}
+
 func (m *MockObjectStorage) DeleteByFileURL(_ context.Context, fileURL string) error {
 	if strings.TrimSpace(fileURL) == "" {
 		return domainErr.ErrValidation

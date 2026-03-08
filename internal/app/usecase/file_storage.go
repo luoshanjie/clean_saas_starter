@@ -203,6 +203,7 @@ func (u *FileDownloadPresignUsecase) Execute(ctx context.Context, in FileDownloa
 		if err != nil {
 			return nil, err
 		}
+		input.FileURL = ""
 		input.ObjectKey = strings.TrimSpace(f.ObjectKey)
 	}
 	out, err := u.Storage.PresignDownload(ctx, input)
@@ -210,6 +211,43 @@ func (u *FileDownloadPresignUsecase) Execute(ctx context.Context, in FileDownloa
 		return nil, err
 	}
 	return &FileDownloadPresignOutput{DownloadURL: out.DownloadURL}, nil
+}
+
+type FileDeleteInput struct {
+	FileID string
+}
+
+type FileDeleteOutput struct {
+	Status string
+}
+
+type FileDeleteUsecase struct {
+	Storage  port.ObjectStorage
+	FileRepo port.FileRepo
+}
+
+func (u *FileDeleteUsecase) Execute(ctx context.Context, in FileDeleteInput) (*FileDeleteOutput, error) {
+	if u.Storage == nil || u.FileRepo == nil {
+		return nil, domainErr.ErrValidation
+	}
+	fileID := strings.TrimSpace(in.FileID)
+	if fileID == "" {
+		return nil, domainErr.ErrValidation
+	}
+	f, err := u.FileRepo.GetByID(ctx, fileID)
+	if err != nil {
+		return nil, err
+	}
+	if err := u.Storage.DeleteObject(ctx, port.DeleteObjectInput{
+		Bucket:    strings.TrimSpace(f.Bucket),
+		ObjectKey: strings.TrimSpace(f.ObjectKey),
+	}); err != nil {
+		return nil, fmt.Errorf("file_object_delete_failed: %w", err)
+	}
+	if err := u.FileRepo.DeleteByID(ctx, fileID); err != nil {
+		return nil, fmt.Errorf("file_asset_delete_failed: %w", err)
+	}
+	return &FileDeleteOutput{Status: "ok"}, nil
 }
 
 type CleanupExpiredUploadSessionsInput struct {
