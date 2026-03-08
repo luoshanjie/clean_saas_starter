@@ -1,5 +1,7 @@
 # Clean SaaS Starter
 
+English | [简体中文](README.zh-CN.md)
+
 An open-source multi-tenant SaaS starter for building new systems on top of a reusable kernel instead of starting from a vertical business project.
 
 ## 1. What It Is
