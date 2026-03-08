@@ -187,6 +187,8 @@ Important docs:
   - make object storage optional before SQLite support
 - [docs/sqlite-support-plan.md](docs/sqlite-support-plan.md)
   - add SQLite as the low-friction local database path
+- [docs/file-capability-plan.md](docs/file-capability-plan.md)
+  - optional file capability boundary and evolution path
 - [docs/scaffolding-cli-plan.md](docs/scaffolding-cli-plan.md)
   - `new-project` and `new-module` CLI plan
 

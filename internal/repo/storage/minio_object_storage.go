@@ -92,15 +92,33 @@ func (s *MinIOObjectStorage) PresignDownload(ctx context.Context, in port.Presig
 	if s == nil || s.client == nil {
 		return nil, domainErr.ErrValidation
 	}
-	objectKey, err := s.objectKeyFromFileURL(strings.TrimSpace(in.FileURL))
-	if err != nil {
-		return nil, err
+	objectKey := strings.TrimSpace(in.ObjectKey)
+	if objectKey == "" {
+		var err error
+		objectKey, err = s.objectKeyFromFileURL(strings.TrimSpace(in.FileURL))
+		if err != nil {
+			return nil, err
+		}
 	}
 	u, err := s.client.PresignedGetObject(ctx, s.bucket, objectKey, s.presignExpire, nil)
 	if err != nil {
 		return nil, err
 	}
 	return &port.PresignDownloadOutput{DownloadURL: u.String()}, nil
+}
+
+func (s *MinIOObjectStorage) ResolveFile(_ context.Context, in port.ResolveFileInput) (*port.ResolveFileOutput, error) {
+	if s == nil || s.client == nil {
+		return nil, domainErr.ErrValidation
+	}
+	objectKey, err := s.objectKeyFromFileURL(strings.TrimSpace(in.FileURL))
+	if err != nil {
+		return nil, err
+	}
+	return &port.ResolveFileOutput{
+		Bucket:    s.bucket,
+		ObjectKey: objectKey,
+	}, nil
 }
 
 func (s *MinIOObjectStorage) DeleteByFileURL(ctx context.Context, fileURL string) error {

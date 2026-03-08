@@ -14,11 +14,14 @@ func wireFileHandlers(h *bootstrapHandlers, d handlerDeps) {
 			Now:     d.now,
 		},
 		UploadConfirmUC: &usecase.FileUploadConfirmUsecase{
-			Repo: d.repos.fileUploadSessionRepo,
-			Now:  d.now,
+			Repo:     d.repos.fileUploadSessionRepo,
+			FileRepo: d.repos.fileRepo,
+			Storage:  d.repos.objectStorage,
+			Now:      d.now,
 		},
 		DownloadPresignUC: &usecase.FileDownloadPresignUsecase{
-			Storage: d.repos.objectStorage,
+			Storage:  d.repos.objectStorage,
+			FileRepo: d.repos.fileRepo,
 		},
 		CleanupExpiredUC: &usecase.CleanupExpiredUploadSessionsUsecase{
 			Storage: d.repos.objectStorage,

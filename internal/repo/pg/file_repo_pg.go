@@ -2,10 +2,12 @@ package pg
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	domainErr "service/internal/domain/errors"
 	"service/internal/domain/model"
 	"service/internal/repo/pg/sqlcpg"
 )
@@ -41,4 +43,28 @@ func (r *FileRepoPG) Create(ctx context.Context, f *model.File) error {
 			CreatedAt: pgTimestamptz(f.CreatedAt),
 		})
 	})
+}
+
+func (r *FileRepoPG) GetByID(ctx context.Context, id string) (*model.File, error) {
+	var out *model.File
+	err := withRLS(ctx, r.DB, func(tx pgx.Tx) error {
+		row := tx.QueryRow(ctx, `
+SELECT id::text, tenant_id::text, bucket, object_key, size, mime, owner_type, owner_id::text, created_at
+FROM files
+WHERE id = $1::uuid
+`, id)
+		f := &model.File{}
+		if err := row.Scan(&f.ID, &f.TenantID, &f.Bucket, &f.ObjectKey, &f.Size, &f.Mime, &f.OwnerType, &f.OwnerID, &f.CreatedAt); err != nil {
+			return err
+		}
+		out = f
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domainErr.ErrNotFound
+		}
+		return nil, err
+	}
+	return out, nil
 }

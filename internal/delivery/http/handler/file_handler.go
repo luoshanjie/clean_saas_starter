@@ -36,6 +36,7 @@ type fileUploadConfirmRequest struct {
 }
 
 type fileDownloadPresignRequest struct {
+	FileID  string `json:"file_id"`
 	FileURL string `json:"file_url"`
 }
 
@@ -115,6 +116,7 @@ func (h *FileHandler) DownloadPresign(c echo.Context) error {
 		return c.JSON(http.StatusOK, resp.ErrorWithRequestID(middleware.GetRequestID(c), resp.CodeValidation, "bad request"))
 	}
 	out, err := h.DownloadPresignUC.Execute(c.Request().Context(), usecase.FileDownloadPresignInput{
+		FileID:  req.FileID,
 		FileURL: req.FileURL,
 	})
 	if err != nil {

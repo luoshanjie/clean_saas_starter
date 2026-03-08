@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -109,12 +110,14 @@ type FileUploadConfirmOutput struct {
 }
 
 type FileUploadConfirmUsecase struct {
-	Repo port.FileUploadSessionRepo
-	Now  func() time.Time
+	Repo     port.FileUploadSessionRepo
+	FileRepo port.FileRepo
+	Storage  port.ObjectStorage
+	Now      func() time.Time
 }
 
 func (u *FileUploadConfirmUsecase) Execute(ctx context.Context, in FileUploadConfirmInput) (*FileUploadConfirmOutput, error) {
-	if u.Repo == nil || u.Now == nil {
+	if u.Repo == nil || u.FileRepo == nil || u.Storage == nil || u.Now == nil {
 		return nil, domainErr.ErrValidation
 	}
 	if strings.TrimSpace(in.UploadID) == "" || strings.TrimSpace(in.ActorUserID) == "" {
@@ -130,23 +133,46 @@ func (u *FileUploadConfirmUsecase) Execute(ctx context.Context, in FileUploadCon
 	if s.UploadedBy != strings.TrimSpace(in.ActorUserID) {
 		return nil, domainErr.ErrForbidden
 	}
-	if s.Status == "confirmed" {
-		return &FileUploadConfirmOutput{Status: "ok", FileID: s.ID, FileURL: s.FileURL}, nil
-	}
-	if s.Status != "pending_confirm" {
+	if s.Status != "pending_confirm" && s.Status != "confirmed" {
 		return nil, domainErr.ErrValidation
 	}
-	if u.Now().After(s.ExpiresAt) {
+	if s.Status == "pending_confirm" && u.Now().After(s.ExpiresAt) {
 		return nil, domainErr.ErrValidation
 	}
-	updated, err := u.Repo.Confirm(ctx, s.ID, u.Now())
+	updated := s
+	if s.Status == "pending_confirm" {
+		updated, err = u.Repo.Confirm(ctx, s.ID, u.Now())
+		if err != nil {
+			return nil, fmt.Errorf("upload_confirm_persist_failed: %w", err)
+		}
+	}
+	if _, err := u.FileRepo.GetByID(ctx, updated.ID); err == nil {
+		return &FileUploadConfirmOutput{Status: "ok", FileID: updated.ID, FileURL: updated.FileURL}, nil
+	} else if !errors.Is(err, domainErr.ErrNotFound) {
+		return nil, fmt.Errorf("file_asset_load_failed: %w", err)
+	}
+	resolved, err := u.Storage.ResolveFile(ctx, port.ResolveFileInput{FileURL: updated.FileURL})
 	if err != nil {
-		return nil, fmt.Errorf("upload_confirm_persist_failed: %w", err)
+		return nil, fmt.Errorf("upload_confirm_resolve_failed: %w", err)
+	}
+	if err := u.FileRepo.Create(ctx, &model.File{
+		ID:        updated.ID,
+		TenantID:  strings.TrimSpace(updated.TenantID),
+		Bucket:    resolved.Bucket,
+		ObjectKey: resolved.ObjectKey,
+		Size:      updated.SizeBytes,
+		Mime:      strings.TrimSpace(updated.ContentType),
+		OwnerType: "user",
+		OwnerID:   strings.TrimSpace(updated.UploadedBy),
+		CreatedAt: updated.CreatedAt,
+	}); err != nil {
+		return nil, fmt.Errorf("file_asset_persist_failed: %w", err)
 	}
 	return &FileUploadConfirmOutput{Status: "ok", FileID: updated.ID, FileURL: updated.FileURL}, nil
 }
 
 type FileDownloadPresignInput struct {
+	FileID  string
 	FileURL string
 }
 
@@ -155,16 +181,31 @@ type FileDownloadPresignOutput struct {
 }
 
 type FileDownloadPresignUsecase struct {
-	Storage port.ObjectStorage
+	Storage  port.ObjectStorage
+	FileRepo port.FileRepo
 }
 
 func (u *FileDownloadPresignUsecase) Execute(ctx context.Context, in FileDownloadPresignInput) (*FileDownloadPresignOutput, error) {
-	if u.Storage == nil || strings.TrimSpace(in.FileURL) == "" {
+	if u.Storage == nil {
 		return nil, domainErr.ErrValidation
 	}
-	out, err := u.Storage.PresignDownload(ctx, port.PresignDownloadInput{
-		FileURL: strings.TrimSpace(in.FileURL),
-	})
+	fileID := strings.TrimSpace(in.FileID)
+	fileURL := strings.TrimSpace(in.FileURL)
+	if fileID == "" && fileURL == "" {
+		return nil, domainErr.ErrValidation
+	}
+	input := port.PresignDownloadInput{FileURL: fileURL}
+	if fileID != "" {
+		if u.FileRepo == nil {
+			return nil, domainErr.ErrValidation
+		}
+		f, err := u.FileRepo.GetByID(ctx, fileID)
+		if err != nil {
+			return nil, err
+		}
+		input.ObjectKey = strings.TrimSpace(f.ObjectKey)
+	}
+	out, err := u.Storage.PresignDownload(ctx, input)
 	if err != nil {
 		return nil, err
 	}

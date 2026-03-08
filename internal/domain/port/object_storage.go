@@ -14,15 +14,26 @@ type PresignUploadOutput struct {
 }
 
 type PresignDownloadInput struct {
-	FileURL string
+	FileURL   string
+	ObjectKey string
 }
 
 type PresignDownloadOutput struct {
 	DownloadURL string
 }
 
+type ResolveFileInput struct {
+	FileURL string
+}
+
+type ResolveFileOutput struct {
+	Bucket    string
+	ObjectKey string
+}
+
 type ObjectStorage interface {
 	PresignUpload(ctx context.Context, in PresignUploadInput) (*PresignUploadOutput, error)
 	PresignDownload(ctx context.Context, in PresignDownloadInput) (*PresignDownloadOutput, error)
+	ResolveFile(ctx context.Context, in ResolveFileInput) (*ResolveFileOutput, error)
 	DeleteByFileURL(ctx context.Context, fileURL string) error
 }

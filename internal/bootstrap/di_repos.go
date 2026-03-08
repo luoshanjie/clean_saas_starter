@@ -24,6 +24,7 @@ type bootstrapRepos struct {
 	authRepo              bootstrapAuthRepo
 	tenantRepo            port.TenantRepo
 	auditRepo             port.AuditRepo
+	fileRepo              port.FileRepo
 	fileUploadSessionRepo port.FileUploadSessionRepo
 	objectStorage         port.ObjectStorage
 }
@@ -49,6 +50,7 @@ func newBootstrapRepos(db *DBRuntime, now func() time.Time, ossCfg OSSConfig, _ 
 			authRepo:              &pg.AuthRepoPG{DB: db.Postgres},
 			tenantRepo:            &pg.TenantRepoPG{DB: db.Postgres},
 			auditRepo:             &pg.AuditRepoPG{DB: db.Postgres},
+			fileRepo:              &pg.FileRepoPG{DB: db.Postgres},
 			fileUploadSessionRepo: &pg.FileUploadSessionRepoPG{DB: db.Postgres},
 			objectStorage:         newObjectStorage(ossCfg, now),
 		}, nil
@@ -60,6 +62,7 @@ func newBootstrapRepos(db *DBRuntime, now func() time.Time, ossCfg OSSConfig, _ 
 			authRepo:              &sqliterepo.AuthRepoSQLite{DB: db.SQLite},
 			tenantRepo:            &sqliterepo.TenantRepoSQLite{DB: db.SQLite},
 			auditRepo:             &sqliterepo.AuditRepoSQLite{DB: db.SQLite},
+			fileRepo:              &sqliterepo.FileRepoSQLite{DB: db.SQLite},
 			fileUploadSessionRepo: &sqliterepo.FileUploadSessionRepoSQLite{DB: db.SQLite},
 			objectStorage:         newObjectStorage(ossCfg, now),
 		}, nil

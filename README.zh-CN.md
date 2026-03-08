@@ -187,6 +187,8 @@ internal/app/usecase/post_test.go
   - 先把对象存储改成可选能力，再进入 SQLite 支持
 - [docs/sqlite-support-plan.md](docs/sqlite-support-plan.md)
   - 增加 SQLite 作为低门槛本地数据库路径
+- [docs/file-capability-plan.md](docs/file-capability-plan.md)
+  - 文件能力选配边界与演进方案
 - [docs/scaffolding-cli-plan.md](docs/scaffolding-cli-plan.md)
   - `new-project` 与 `new-module` CLI 规划
 
