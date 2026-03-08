@@ -202,3 +202,7 @@ internal/app/usecase/post_test.go
   - `new-project` 与 `new-module` CLI 规划
 
 这一部分主要面向愿意理解和改进这个脚手架本身的开发者。
+
+## License
+
+本项目采用 Apache License 2.0 开源协议。详见 [LICENSE](LICENSE)。

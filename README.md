@@ -202,3 +202,7 @@ Important docs:
   - `new-project` and `new-module` CLI plan
 
 This part is mainly for contributors or developers who want to understand or improve the scaffold itself.
+
+## License
+
+This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE).
