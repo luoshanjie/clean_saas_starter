@@ -19,8 +19,8 @@ oss:
   endpoint: "127.0.0.1:9000"
   access_key: "your_minio_access_key"
   secret_key: "your_oss_secret_key"
-  bucket: "your-bucket-1234567890"
-  public_base_url: "http://127.0.0.1:9000/your-bucket-1234567890"
+  bucket: "service-dev"
+  public_base_url: "http://127.0.0.1:9000/service-dev"
   use_ssl: false
 
 upload_cleanup:

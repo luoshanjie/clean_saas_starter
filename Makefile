@@ -10,6 +10,7 @@ SRC := cmd/service/main.go
 BUILD_DIR := build
 # go build 缓存目录（避免默认缓存权限问题）
 GOCACHE := $(CURDIR)/.gocache
+export GOCACHE
 
 # 默认 OS/ARCH 取 go env，可用 OS=linux ARCH=arm64 覆盖
 OS ?= $(shell go env GOOS)

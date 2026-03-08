@@ -1,25 +1,35 @@
 # Clean SaaS Starter
 
-An open-source multi-tenant SaaS starter with clean architecture, built on Echo, sqlc, and Casbin.
+An open-source multi-tenant SaaS starter for building new systems on top of a reusable kernel instead of starting from a vertical business project.
 
-## Scope
+## 1. What It Is
 
-This repository is positioned as a reusable SaaS kernel, not a vertical business application.
+This repository is a generic SaaS scaffold, not a concrete business application.
 
-Built-in kernel capabilities currently include:
+Its goal is to provide out-of-the-box kernel capabilities for new SaaS systems:
 
 - multi-tenant context and isolation
 - authentication and RBAC
-- runtime config, logging, middleware
+- runtime config, logging, and middleware
 - audit and file upload primitives
+- project and module scaffolding CLI
 
-## Object Storage Policy
+Current core stack:
 
-The framework only ships with a built-in MinIO adapter.
+- Go
+- Echo
+- sqlc
+- Casbin
+- PostgreSQL
+- MinIO
 
-It does not include cloud-vendor object storage SDKs by default. Support for Alibaba Cloud, Tencent Cloud, Cloudflare R2, AWS S3, or other providers should be added by framework users in their own adapters.
+Object storage policy:
 
-Current `oss` config is designed around the built-in MinIO adapter:
+- the framework ships with a built-in MinIO adapter
+- cloud-vendor SDKs are not bundled into the main scaffold
+- Alibaba Cloud, Tencent Cloud, Cloudflare R2, AWS S3, or other providers should be added by users in their own adapters
+
+Current `oss` config fields:
 
 - `endpoint`
 - `access_key`
@@ -28,9 +38,45 @@ Current `oss` config is designed around the built-in MinIO adapter:
 - `public_base_url`
 - `use_ssl`
 
-## CLI
+## 2. How To Use It
 
-Current scaffold CLI supports module skeleton generation inside the current project:
+### Create A New Project
+
+Generate a new project from this starter:
+
+```bash
+go run ./cmd/cli new-project --name my-saas --output ../my-saas
+```
+
+Optional:
+
+```bash
+go run ./cmd/cli new-project --name my-saas --output ../my-saas --module-path github.com/acme/my-saas
+```
+
+The generated project will:
+
+- copy the current starter into the target directory
+- skip local-only files such as `.git`, `.env`, `app.yaml`, `build`, `logs`
+- replace the default module name, binary name, command path, and example database name
+
+### Start The Generated Project
+
+Inside the generated project:
+
+```bash
+cp .env.example .env
+make build
+make dev
+```
+
+Before `make dev`, make sure:
+
+1. your database has been created
+2. SQL in `migrations/` has been executed
+3. `.env` or `app.yaml` points to the correct database and MinIO endpoint
+
+### Generate A Module In The Current Project
 
 ```bash
 go run ./cmd/cli new-module --name post
@@ -42,7 +88,7 @@ Optional:
 go run ./cmd/cli new-module --name post --with-test
 ```
 
-By default it generates these files under the current repository root:
+By default it generates:
 
 ```text
 internal/domain/model/post.go
@@ -63,7 +109,6 @@ internal/app/usecase/post_test.go
 Notes:
 
 - `--name` must be `snake_case`
-- `--with-test` adds a minimal usecase test skeleton
 - output paths are fixed by the framework convention
 - existing files will not be overwritten
 
@@ -74,7 +119,36 @@ After generation, you still need to complete:
 3. Implement the generated `repo / usecase / handler` skeletons.
 4. Register the module manually in bootstrap and routes when the module is ready.
 
-## Docs
+## 3. How It Is Organized
 
-- See [kernel-capability-boundary.md](/Users/luoshanjie/workspace/ai/base/clean_saas_starter/docs/kernel-capability-boundary.md) for the kernel vs module boundary.
-- See [scaffolding-cli-plan.md](/Users/luoshanjie/workspace/ai/base/clean_saas_starter/docs/scaffolding-cli-plan.md) for the `new-project` and `new-module` CLI plan.
+This project follows a clean architecture style with a kernel-first layout.
+
+Main directories:
+
+- `cmd/`
+  - service entrypoint and scaffold CLI
+- `internal/domain/`
+  - domain models, errors, ports, auth context
+- `internal/app/usecase/`
+  - application use cases
+- `internal/repo/`
+  - infrastructure adapters such as PostgreSQL, Casbin, MinIO, cache, SMS
+- `internal/delivery/http/`
+  - Echo handlers, middleware, response envelopes
+- `internal/bootstrap/`
+  - composition root, config loading, DI, routes, app startup
+- `db/query/`
+  - sqlc query definitions
+- `migrations/`
+  - database migrations
+- `docs/`
+  - design and scaffold planning documents
+
+Important docs:
+
+- [docs/kernel-capability-boundary.md](docs/kernel-capability-boundary.md)
+  - kernel vs business-module boundary
+- [docs/scaffolding-cli-plan.md](docs/scaffolding-cli-plan.md)
+  - `new-project` and `new-module` CLI plan
+
+This part is mainly for contributors or developers who want to understand or improve the scaffold itself.

@@ -39,13 +39,17 @@ go run ./cmd/cli new-project --name my-saas --output ../my-saas
 
 ### 第一阶段最小能力
 
-第一阶段即使不实现，也应先明确它未来最小要做什么：
+当前仓库已经实现了一个最小版 `new-project`。
+
+已实现范围：
 
 - 接收 `--name`
 - 接收 `--output`
+- 可选 `--module-path`
 - 把当前仓库的最小内核模板复制到目标目录
-- 生成目标项目自己的 `.env.example`、`app.yaml.example`
-- 替换项目名、模块名、镜像名等占位符
+- 保留 `.env.example`、`app.yaml.example`
+- 跳过 `.git`、`.env`、`app.yaml`、`build`、`logs`、`.gocache`
+- 替换项目名、模块名、镜像名、命令目录、示例数据库名等占位
 - 生成后项目可独立执行 `make build`
 
 ### 推荐输入
@@ -181,20 +185,21 @@ migrations/<timestamp>_add_<plural>.sql
 已完成：
 
 - `new-module` 最小骨架生成
+- `new-project` 最小项目复制生成
 
 ### 阶段 2
 
 下一步建议：
 
-- 给 `new-module` 补文档和 README 示例
-- 明确生成后开发者还需要手工完成哪些步骤
+- 让 `new-project` 支持更明确的模板变量
+- 明确生成后第一次启动步骤
 
 ### 阶段 3
 
 再做：
 
-- `new-project` 最小实现
-- 基于当前仓库最小可运行内核复制到目标目录
+- 项目模板变体
+- 模块注册接口联动
 
 ### 阶段 4
 
@@ -208,7 +213,7 @@ migrations/<timestamp>_add_<plural>.sql
 
 当前仓库应把 CLI 明确定位为：
 
+- `new-project`：当前已实现最小版，服务“新项目初始化”
 - `new-module`：当前已实现，服务“项目内模块生成”
-- `new-project`：当前只定方案，后续实现，服务“新项目初始化”
 
 这两者一起，才构成完整的 SaaS 脚手架体验。
