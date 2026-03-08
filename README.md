@@ -25,6 +25,14 @@ Current core stack:
 - PostgreSQL
 - MinIO (optional, only required when file storage is enabled)
 
+Architecture and upgrade policy:
+
+- the kernel should stay stable at the capability boundary, not at a specific SDK or implementation version
+- core business and use case logic should not depend directly on database drivers, object storage SDKs, or vendor-specific APIs
+- upgrades to Go, Echo, pgx, MinIO SDK, Casbin, and similar dependencies should be absorbed primarily in adapters and bootstrap wiring
+- if a newer runtime or dependency naturally improves performance, stability, or security, the scaffold should remain upgrade-friendly enough to benefit from it
+- infrastructure differences can exist, but they must be documented explicitly rather than hidden behind fake equivalence
+
 Authentication policy:
 
 - login second factor is optional at the framework level
