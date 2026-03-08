@@ -54,10 +54,13 @@ func Build(ctx context.Context, e *echo.Echo, pool *pgxpool.Pool, idGen func() s
 	handlers := newBootstrapHandlers(repos, permChecker, idGen, now, cfg.JWTSecret)
 	registerRoutes(e, handlers, repos, permChecker)
 
-	cleanupUC := &usecase.CleanupExpiredUploadSessionsUsecase{
-		Storage: repos.objectStorage,
-		Repo:    repos.fileUploadSessionRepo,
-		Now:     now,
+	var cleanupUC *usecase.CleanupExpiredUploadSessionsUsecase
+	if repos.objectStorage != nil {
+		cleanupUC = &usecase.CleanupExpiredUploadSessionsUsecase{
+			Storage: repos.objectStorage,
+			Repo:    repos.fileUploadSessionRepo,
+			Now:     now,
+		}
 	}
 	stopCleanupJob := startUploadCleanupJob(ctx, appLogger, cleanupUC, cfg.UploadCleanup)
 

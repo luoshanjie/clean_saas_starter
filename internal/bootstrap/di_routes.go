@@ -30,8 +30,10 @@ func registerRoutes(e *echo.Echo, hs *bootstrapHandlers, repos *bootstrapRepos, 
 	protected.POST("/platform/tenant/check-display-name", hs.platformTenantHandler.CheckDisplayName)
 	protected.POST("/platform/tenant/check-admin-account", hs.platformTenantHandler.CheckAdminAccount)
 	protected.POST("/platform/tenant/check-admin-phone", hs.platformTenantHandler.CheckAdminPhone)
-	protected.POST("/file/upload/session/create", hs.fileHandler.UploadSessionCreate)
-	protected.POST("/file/upload/confirm", hs.fileHandler.UploadConfirm)
-	protected.POST("/file/download/presign", hs.fileHandler.DownloadPresign)
-	protected.POST("/file/upload/cleanup-expired", hs.fileHandler.CleanupExpired, middleware.RequirePermission(permChecker, "platform.system.config"))
+	if hs.fileHandler != nil {
+		protected.POST("/file/upload/session/create", hs.fileHandler.UploadSessionCreate)
+		protected.POST("/file/upload/confirm", hs.fileHandler.UploadConfirm)
+		protected.POST("/file/download/presign", hs.fileHandler.DownloadPresign)
+		protected.POST("/file/upload/cleanup-expired", hs.fileHandler.CleanupExpired, middleware.RequirePermission(permChecker, "platform.system.config"))
+	}
 }

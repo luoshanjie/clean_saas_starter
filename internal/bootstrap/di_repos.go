@@ -1,7 +1,6 @@
 package bootstrap
 
 import (
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -39,11 +38,8 @@ func newBootstrapRepos(pool *pgxpool.Pool, now func() time.Time, ossCfg OSSConfi
 }
 
 func newObjectStorage(c OSSConfig, now func() time.Time) port.ObjectStorage {
-	if strings.TrimSpace(c.Endpoint) == "" ||
-		strings.TrimSpace(c.AccessKey) == "" ||
-		strings.TrimSpace(c.SecretKey) == "" ||
-		strings.TrimSpace(c.Bucket) == "" {
-		return &storagerepo.MockObjectStorage{Now: now}
+	if !c.Enabled() {
+		return nil
 	}
 	storage := storagerepo.NewMinIOObjectStorage(storagerepo.MinIOConfig{
 		Endpoint:      c.Endpoint,
@@ -56,7 +52,7 @@ func newObjectStorage(c OSSConfig, now func() time.Time) port.ObjectStorage {
 		Now:           now,
 	})
 	if storage == nil {
-		return &storagerepo.MockObjectStorage{Now: now}
+		return nil
 	}
 	return storage
 }

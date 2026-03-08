@@ -7,6 +7,32 @@ import (
 	"time"
 )
 
+func TestOSSConfigEnabled(t *testing.T) {
+	t.Run("disabled_when_required_fields_missing", func(t *testing.T) {
+		cfg := OSSConfig{
+			Endpoint:  "127.0.0.1:9000",
+			AccessKey: "minioadmin",
+			SecretKey: "",
+			Bucket:    "service-dev",
+		}
+		if cfg.Enabled() {
+			t.Fatalf("expected OSS disabled when secret key is missing")
+		}
+	})
+
+	t.Run("enabled_when_required_fields_present", func(t *testing.T) {
+		cfg := OSSConfig{
+			Endpoint:  "127.0.0.1:9000",
+			AccessKey: "minioadmin",
+			SecretKey: "miniosecret",
+			Bucket:    "service-dev",
+		}
+		if !cfg.Enabled() {
+			t.Fatalf("expected OSS enabled when required fields are present")
+		}
+	})
+}
+
 func TestLoadConfig_FromYAML(t *testing.T) {
 	clearConfigEnv(t)
 	dir := t.TempDir()

@@ -23,11 +23,12 @@
 - sqlc
 - Casbin
 - PostgreSQL
-- MinIO
+- MinIO（可选，只有启用文件存储能力时才需要）
 
 对象存储策略：
 
 - 框架内置 MinIO 适配器
+- 对象存储是可选能力，没有 OSS 也可以启动服务
 - 主干不内置云厂商 SDK
 - 阿里云、腾讯云、Cloudflare R2、AWS S3 等由使用者自行扩展 adapter
 
@@ -76,7 +77,8 @@ make dev
 
 1. 数据库已经创建
 2. `migrations/` 里的 SQL 已经执行
-3. `.env` 或 `app.yaml` 已正确指向数据库和 MinIO
+3. `.env` 或 `app.yaml` 已正确指向数据库
+4. 只有当你要启用文件上传/下载能力时，才需要继续配置 OSS
 
 ### 在当前项目里生成一个模块
 
@@ -150,6 +152,8 @@ internal/app/usecase/post_test.go
 
 - [docs/kernel-capability-boundary.md](docs/kernel-capability-boundary.md)
   - 内核与业务模块边界
+- [docs/oss-optional-plan.md](docs/oss-optional-plan.md)
+  - 先把对象存储改成可选能力，再进入 SQLite 支持
 - [docs/scaffolding-cli-plan.md](docs/scaffolding-cli-plan.md)
   - `new-project` 与 `new-module` CLI 规划
 

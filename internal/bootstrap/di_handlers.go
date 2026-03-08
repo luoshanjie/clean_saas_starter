@@ -39,6 +39,8 @@ func newBootstrapHandlers(
 	h := &bootstrapHandlers{}
 	wireAuthHandlers(h, d)
 	wirePlatformHandlers(h, d)
-	wireFileHandlers(h, d)
+	if repos != nil && repos.objectStorage != nil {
+		wireFileHandlers(h, d)
+	}
 	return h
 }

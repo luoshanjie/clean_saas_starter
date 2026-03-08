@@ -23,11 +23,12 @@ Current core stack:
 - sqlc
 - Casbin
 - PostgreSQL
-- MinIO
+- MinIO (optional, only required when file storage is enabled)
 
 Object storage policy:
 
 - the framework ships with a built-in MinIO adapter
+- object storage is optional; the service can run without OSS
 - cloud-vendor SDKs are not bundled into the main scaffold
 - Alibaba Cloud, Tencent Cloud, Cloudflare R2, AWS S3, or other providers should be added by users in their own adapters
 
@@ -76,7 +77,8 @@ Before `make dev`, make sure:
 
 1. your database has been created
 2. SQL in `migrations/` has been executed
-3. `.env` or `app.yaml` points to the correct database and MinIO endpoint
+3. `.env` or `app.yaml` points to the correct database
+4. configure OSS only if you want to enable file upload and download routes
 
 ### Generate A Module In The Current Project
 
@@ -150,6 +152,8 @@ Important docs:
 
 - [docs/kernel-capability-boundary.md](docs/kernel-capability-boundary.md)
   - kernel vs business-module boundary
+- [docs/oss-optional-plan.md](docs/oss-optional-plan.md)
+  - make object storage optional before SQLite support
 - [docs/scaffolding-cli-plan.md](docs/scaffolding-cli-plan.md)
   - `new-project` and `new-module` CLI plan
 

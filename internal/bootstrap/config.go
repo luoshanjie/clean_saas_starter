@@ -39,6 +39,13 @@ type OSSConfig struct {
 	UseSSL        bool
 }
 
+func (c OSSConfig) Enabled() bool {
+	return strings.TrimSpace(c.Endpoint) != "" &&
+		strings.TrimSpace(c.AccessKey) != "" &&
+		strings.TrimSpace(c.SecretKey) != "" &&
+		strings.TrimSpace(c.Bucket) != ""
+}
+
 type fileConfig struct {
 	Server struct {
 		Addr      string `yaml:"addr"`
