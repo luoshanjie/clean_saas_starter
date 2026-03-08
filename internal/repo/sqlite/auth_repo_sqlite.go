@@ -191,7 +191,7 @@ func (r *AuthRepoSQLite) PhoneExists(ctx context.Context, phone string) (bool, e
 }
 
 func (r *AuthRepoSQLite) UpdatePhoneByUserID(ctx context.Context, userID, phone string) error {
-	query := `UPDATE users SET phone = ? WHERE id = ?`
+	query := `UPDATE users SET phone = ?, token_version = token_version + 1 WHERE id = ?`
 	args := []any{nullableString(phone), userID}
 	if tenantID := tenantScopeID(ctx); tenantID != "" {
 		query += ` AND COALESCE(tenant_id, '') = ?`

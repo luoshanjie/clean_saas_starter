@@ -37,8 +37,10 @@ type loginVerifyResp struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    struct {
-		AccessToken  string `json:"access_token"`
-		RefreshToken string `json:"refresh_token"`
+		AccessToken        string  `json:"access_token"`
+		RefreshToken       string  `json:"refresh_token"`
+		MustChangePassword bool    `json:"must_change_password"`
+		PasswordUpdatedAt  *string `json:"password_updated_at"`
 	} `json:"data"`
 }
 
@@ -46,9 +48,11 @@ type meResp struct {
 	Code int `json:"code"`
 	Data struct {
 		User struct {
-			ID string `json:"id"`
+			ID   string `json:"id"`
+			Name string `json:"name"`
 		} `json:"user"`
-		Permissions []string `json:"permissions"`
+		Permissions        []string `json:"permissions"`
+		MustChangePassword bool     `json:"must_change_password"`
 	} `json:"data"`
 }
 
@@ -84,7 +88,13 @@ func TestAuthFlow_Integration(t *testing.T) {
 	assertAuthRepo(t, pool)
 
 	e := echo.New()
-	_, err = bootstrap.Build(ctx, e, pool, func() string { return "tid" }, time.Now, bootstrap.Config{JWTSecret: "test_secret"}, logger.NewNopLogger())
+	_, err = bootstrap.Build(ctx, e, &bootstrap.DBRuntime{
+		Driver:   bootstrap.DBDriverPostgres,
+		Postgres: pool,
+	}, func() string { return "tid" }, time.Now, bootstrap.Config{
+		DBDriver:  bootstrap.DBDriverPostgres,
+		JWTSecret: "test_secret",
+	}, logger.NewNopLogger())
 	if err != nil {
 		t.Fatalf("build: %v", err)
 	}
