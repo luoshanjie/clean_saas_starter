@@ -3,9 +3,7 @@
 package integration
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -23,46 +21,6 @@ import (
 	"service/internal/repo/pg"
 	"service/pkg/logger"
 )
-
-type loginChallengeResp struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Data    struct {
-		ChallengeID string `json:"challenge_id"`
-		MaskedPhone string `json:"masked_phone"`
-	} `json:"data"`
-}
-
-type loginVerifyResp struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Data    struct {
-		AccessToken        string  `json:"access_token"`
-		RefreshToken       string  `json:"refresh_token"`
-		MustChangePassword bool    `json:"must_change_password"`
-		PasswordUpdatedAt  *string `json:"password_updated_at"`
-	} `json:"data"`
-}
-
-type meResp struct {
-	Code int `json:"code"`
-	Data struct {
-		User struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-		} `json:"user"`
-		Permissions        []string `json:"permissions"`
-		MustChangePassword bool     `json:"must_change_password"`
-	} `json:"data"`
-}
-
-type refreshResp struct {
-	Code int `json:"code"`
-	Data struct {
-		AccessToken  string `json:"access_token"`
-		RefreshToken string `json:"refresh_token"`
-	} `json:"data"`
-}
 
 func TestAuthFlow_Integration(t *testing.T) {
 	chdirToRepoRoot(t)
@@ -102,28 +60,16 @@ func TestAuthFlow_Integration(t *testing.T) {
 	defer srv.Close()
 
 	// login
-	login := postJSON(t, srv.URL+"/api/v1/auth/login", map[string]any{
-		"account":  "member1",
-		"password": "pass123",
-	})
-	var lr loginChallengeResp
-	decode(t, login, &lr)
-	if lr.Code != 0 {
-		t.Logf("login error msg: %s", lr.Message)
-		t.Fatalf("login failed: %+v", lr)
-	}
-	if lr.Data.ChallengeID == "" {
-		t.Fatalf("login failed: %+v", lr)
-	}
-	verify := postJSON(t, srv.URL+"/api/v1/auth/login/verify", map[string]any{
-		"challenge_id": lr.Data.ChallengeID,
-		"otp_code":     "123456",
-	})
-	var lv loginVerifyResp
-	decode(t, verify, &lv)
-	if lv.Code != 0 {
-		t.Fatalf("verify failed: %+v", lv)
-	}
+	lr := mustLoginChallenge(t, func(body map[string]any) any {
+		return postJSON(t, srv.URL+"/api/v1/auth/login", body)
+	}, func(raw any, out any) {
+		decode(t, raw.(*http.Response), out)
+	}, "member1", "pass123")
+	lv := mustLoginVerify(t, func(body map[string]any) any {
+		return postJSON(t, srv.URL+"/api/v1/auth/login/verify", body)
+	}, func(raw any, out any) {
+		decode(t, raw.(*http.Response), out)
+	}, lr.Data.ChallengeID)
 
 	// me with access token
 	me := postAuthJSON(t, srv.URL+"/api/v1/auth/me", lv.Data.AccessToken, map[string]any{})
@@ -315,36 +261,5 @@ func bumpTokenVersion(t *testing.T, pool *pgxpool.Pool) {
 	}
 	if err := tx.Commit(context.Background()); err != nil {
 		t.Fatalf("commit: %v", err)
-	}
-}
-
-func postJSON(t *testing.T, url string, body map[string]any) *http.Response {
-	t.Helper()
-	buf, _ := json.Marshal(body)
-	resp, err := http.Post(url, "application/json", bytes.NewReader(buf))
-	if err != nil {
-		t.Fatalf("post: %v", err)
-	}
-	return resp
-}
-
-func postAuthJSON(t *testing.T, url, token string, body map[string]any) *http.Response {
-	t.Helper()
-	buf, _ := json.Marshal(body)
-	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(buf))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatalf("post auth: %v", err)
-	}
-	return resp
-}
-
-func decode(t *testing.T, resp *http.Response, out any) {
-	t.Helper()
-	defer resp.Body.Close()
-	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
-		t.Fatalf("decode: %v", err)
 	}
 }

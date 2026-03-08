@@ -3,10 +3,8 @@
 package integration
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -118,25 +116,16 @@ func TestSQLiteFlow_Integration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build sqlite app: %v", err)
 	}
-	login := doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/login", "", map[string]any{
-		"account":  "platform_root",
-		"password": "pass123",
-	})
-	var lr loginChallengeResp
-	decodeRecorder(t, login, &lr)
-	if lr.Code != 0 || lr.Data.ChallengeID == "" {
-		t.Fatalf("login failed: %+v", lr)
-	}
-
-	verify := doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/login/verify", "", map[string]any{
-		"challenge_id": lr.Data.ChallengeID,
-		"otp_code":     "123456",
-	})
-	var lv loginVerifyResp
-	decodeRecorder(t, verify, &lv)
-	if lv.Code != 0 || lv.Data.AccessToken == "" {
-		t.Fatalf("verify failed: %+v", lv)
-	}
+	lr := mustLoginChallenge(t, func(body map[string]any) any {
+		return doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/login", "", body)
+	}, func(raw any, out any) {
+		decodeRecorder(t, raw.(*httptest.ResponseRecorder), out)
+	}, "platform_root", "pass123")
+	lv := mustLoginVerify(t, func(body map[string]any) any {
+		return doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/login/verify", "", body)
+	}, func(raw any, out any) {
+		decodeRecorder(t, raw.(*httptest.ResponseRecorder), out)
+	}, lr.Data.ChallengeID)
 
 	me := doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/me", lv.Data.AccessToken, map[string]any{})
 	var mr meResp
@@ -220,23 +209,17 @@ func TestSQLiteFlow_Integration(t *testing.T) {
 		t.Fatalf("reset tenant admin password failed: %+v", rap)
 	}
 
-	tenantAdminLogin := doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/login", "", map[string]any{
-		"account":  "acme_admin",
-		"password": rap.Data.TemporaryPassword,
-	})
-	var tal loginChallengeResp
-	decodeRecorder(t, tenantAdminLogin, &tal)
-	if tal.Code != 0 || tal.Data.ChallengeID == "" {
-		t.Fatalf("tenant admin login failed: %+v", tal)
-	}
-
-	tenantAdminVerify := doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/login/verify", "", map[string]any{
-		"challenge_id": tal.Data.ChallengeID,
-		"otp_code":     "123456",
-	})
-	var tav loginVerifyResp
-	decodeRecorder(t, tenantAdminVerify, &tav)
-	if tav.Code != 0 || tav.Data.AccessToken == "" || !tav.Data.MustChangePassword {
+	tal := mustLoginChallenge(t, func(body map[string]any) any {
+		return doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/login", "", body)
+	}, func(raw any, out any) {
+		decodeRecorder(t, raw.(*httptest.ResponseRecorder), out)
+	}, "acme_admin", rap.Data.TemporaryPassword)
+	tav := mustLoginVerify(t, func(body map[string]any) any {
+		return doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/login/verify", "", body)
+	}, func(raw any, out any) {
+		decodeRecorder(t, raw.(*httptest.ResponseRecorder), out)
+	}, tal.Data.ChallengeID)
+	if !tav.Data.MustChangePassword {
 		t.Fatalf("tenant admin verify failed: %+v", tav)
 	}
 
@@ -267,25 +250,16 @@ func TestSQLiteFlow_Integration(t *testing.T) {
 		t.Fatalf("old access token should be invalid after password change")
 	}
 
-	login2 := doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/login", "", map[string]any{
-		"account":  "platform_root",
-		"password": "pass12345",
-	})
-	var lr2 loginChallengeResp
-	decodeRecorder(t, login2, &lr2)
-	if lr2.Code != 0 || lr2.Data.ChallengeID == "" {
-		t.Fatalf("login with new password failed: %+v", lr2)
-	}
-
-	verify2 := doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/login/verify", "", map[string]any{
-		"challenge_id": lr2.Data.ChallengeID,
-		"otp_code":     "123456",
-	})
-	var lv2 loginVerifyResp
-	decodeRecorder(t, verify2, &lv2)
-	if lv2.Code != 0 || lv2.Data.AccessToken == "" {
-		t.Fatalf("verify after password change failed: %+v", lv2)
-	}
+	lr2 := mustLoginChallenge(t, func(body map[string]any) any {
+		return doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/login", "", body)
+	}, func(raw any, out any) {
+		decodeRecorder(t, raw.(*httptest.ResponseRecorder), out)
+	}, "platform_root", "pass12345")
+	lv2 := mustLoginVerify(t, func(body map[string]any) any {
+		return doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/login/verify", "", body)
+	}, func(raw any, out any) {
+		decodeRecorder(t, raw.(*httptest.ResponseRecorder), out)
+	}, lr2.Data.ChallengeID)
 
 	changePhoneChallenge := doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/change-phone/challenge", lv2.Data.AccessToken, map[string]any{
 		"new_phone":    "13800000099",
@@ -325,15 +299,11 @@ func TestSQLiteFlow_Integration(t *testing.T) {
 		t.Fatalf("old access token should be invalid after phone change")
 	}
 
-	login3 := doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/login", "", map[string]any{
-		"account":  "platform_root",
-		"password": "pass12345",
-	})
-	var lr3 loginChallengeResp
-	decodeRecorder(t, login3, &lr3)
-	if lr3.Code != 0 || lr3.Data.ChallengeID == "" {
-		t.Fatalf("login after phone change failed: %+v", lr3)
-	}
+	lr3 := mustLoginChallenge(t, func(body map[string]any) any {
+		return doJSONRequest(t, e, http.MethodPost, "/api/v1/auth/login", "", body)
+	}, func(raw any, out any) {
+		decodeRecorder(t, raw.(*httptest.ResponseRecorder), out)
+	}, "platform_root", "pass12345")
 	if lr3.Data.MaskedPhone != "138****0099" {
 		t.Fatalf("unexpected masked phone after phone change: %+v", lr3)
 	}
@@ -409,27 +379,4 @@ func fixedIDGen(ids ...string) func() string {
 
 func formatFixedIDSuffix(index int) string {
 	return fmt.Sprintf("%012d", index)
-}
-
-func doJSONRequest(t *testing.T, h http.Handler, method, path, token string, body map[string]any) *httptest.ResponseRecorder {
-	t.Helper()
-	buf, err := json.Marshal(body)
-	if err != nil {
-		t.Fatalf("marshal request: %v", err)
-	}
-	req := httptest.NewRequest(method, path, bytes.NewReader(buf))
-	req.Header.Set("Content-Type", "application/json")
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, req)
-	return rec
-}
-
-func decodeRecorder(t *testing.T, rec *httptest.ResponseRecorder, out any) {
-	t.Helper()
-	if err := json.NewDecoder(rec.Body).Decode(out); err != nil {
-		t.Fatalf("decode recorder: %v", err)
-	}
 }
