@@ -20,9 +20,14 @@ type AuthLoginRequest struct {
 }
 
 type AuthLoginResponse struct {
-	ChallengeID string `json:"challenge_id"`
-	MaskedPhone string `json:"masked_phone"`
-	ExpiresIn   int    `json:"expires_in"`
+	RequiresSecondFactor bool    `json:"requires_second_factor"`
+	ChallengeID          string  `json:"challenge_id,omitempty"`
+	MaskedPhone          string  `json:"masked_phone,omitempty"`
+	AccessToken          string  `json:"access_token,omitempty"`
+	RefreshToken         string  `json:"refresh_token,omitempty"`
+	ExpiresIn            int     `json:"expires_in"`
+	MustChangePassword   bool    `json:"must_change_password"`
+	PasswordUpdatedAt    *string `json:"password_updated_at,omitempty"`
 }
 
 type AuthLoginVerifyRequest struct {
@@ -86,21 +91,23 @@ type AuthChangePhoneVerifyResponse struct {
 }
 
 type AuthHandler struct {
-	LoginChallengeUC       *usecase.AuthLoginChallengeUsecase
-	LoginVerifyUC          *usecase.AuthLoginVerifyUsecase
-	RefreshUC              *usecase.AuthRefreshUsecase
-	MeUC                   *usecase.AuthMeUsecase
-	ChangePasswordUC       *usecase.AuthChangePasswordUsecase
-	UpdateDisplayNameUC    *usecase.AuthUpdateDisplayNameUsecase
-	ChangePhoneChallengeUC *usecase.AuthChangePhoneChallengeUsecase
-	ChangePhoneResendUC    *usecase.AuthChangePhoneResendUsecase
-	ChangePhoneVerifyUC    *usecase.AuthChangePhoneVerifyUsecase
-	AuditUC                *usecase.AuditWriteUsecase
-	JWT                    middleware.JWTMiddleware
+	LoginUC                  *usecase.AuthLoginUsecase
+	LoginChallengeUC         *usecase.AuthLoginChallengeUsecase
+	LoginVerifyUC            *usecase.AuthLoginVerifyUsecase
+	RefreshUC                *usecase.AuthRefreshUsecase
+	MeUC                     *usecase.AuthMeUsecase
+	ChangePasswordUC         *usecase.AuthChangePasswordUsecase
+	UpdateDisplayNameUC      *usecase.AuthUpdateDisplayNameUsecase
+	ChangePhoneChallengeUC   *usecase.AuthChangePhoneChallengeUsecase
+	ChangePhoneResendUC      *usecase.AuthChangePhoneResendUsecase
+	ChangePhoneVerifyUC      *usecase.AuthChangePhoneVerifyUsecase
+	AuditUC                  *usecase.AuditWriteUsecase
+	JWT                      middleware.JWTMiddleware
+	LoginSecondFactorEnabled bool
 }
 
 // @Summary      Login
-// @Description  Verify account/password and send OTP challenge.
+// @Description  Verify account/password. Returns OTP challenge when second factor is enabled, otherwise returns tokens directly.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
@@ -122,7 +129,46 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	}
 
 	ctx := authctx.With(c.Request().Context(), authctx.Info{ScopeType: "platform"})
-	out, err := h.LoginChallengeUC.Execute(ctx, usecase.AuthLoginChallengeInput{
+	if h.LoginSecondFactorEnabled {
+		if h.LoginChallengeUC == nil {
+			return c.JSON(http.StatusOK, resp.ErrorWithRequestID(middleware.GetRequestID(c), resp.CodeServerError, "login_second_factor_not_configured"))
+		}
+		out, err := h.LoginChallengeUC.Execute(ctx, usecase.AuthLoginChallengeInput{
+			Account:  req.Account,
+			Password: req.Password,
+		})
+		if err != nil {
+			logAudit(c, h.AuditUC, usecase.AuditWriteInput{
+				TargetType: "auth",
+				Action:     "login",
+				Module:     "auth",
+				Result:     "fail",
+				ErrorCode:  err.Error(),
+			})
+			return c.JSON(http.StatusOK, resp.ErrorWithRequestID(middleware.GetRequestID(c), resp.CodeUnauthorized, err.Error()))
+		}
+		logAudit(c, h.AuditUC, usecase.AuditWriteInput{
+			TargetType: "auth",
+			Action:     "login",
+			Module:     "auth",
+			Result:     "success",
+			AfterJSON: map[string]any{
+				"requires_second_factor": true,
+			},
+		})
+
+		return c.JSON(http.StatusOK, resp.OKWithRequestID(middleware.GetRequestID(c), AuthLoginResponse{
+			RequiresSecondFactor: true,
+			ChallengeID:          out.ChallengeID,
+			MaskedPhone:          out.MaskedPhone,
+			ExpiresIn:            out.ExpiresIn,
+		}))
+	}
+
+	if h.LoginUC == nil {
+		return c.JSON(http.StatusOK, resp.ErrorWithRequestID(middleware.GetRequestID(c), resp.CodeServerError, "login_not_configured"))
+	}
+	out, err := h.LoginUC.Execute(ctx, usecase.AuthLoginInput{
 		Account:  req.Account,
 		Password: req.Password,
 	})
@@ -136,17 +182,34 @@ func (h *AuthHandler) Login(c echo.Context) error {
 		})
 		return c.JSON(http.StatusOK, resp.ErrorWithRequestID(middleware.GetRequestID(c), resp.CodeUnauthorized, err.Error()))
 	}
+	var passwordUpdatedAt *string
+	if out.User != nil && out.User.PasswordUpdatedAt != nil {
+		s := out.User.PasswordUpdatedAt.UTC().Format(time.RFC3339)
+		passwordUpdatedAt = &s
+	}
+	mustChange := usecase.ShouldForcePasswordChange(out.User)
+	targetID := ""
+	if out.User != nil {
+		targetID = out.User.ID
+	}
 	logAudit(c, h.AuditUC, usecase.AuditWriteInput{
-		TargetType: "auth",
+		TargetType: "user",
+		TargetID:   targetID,
 		Action:     "login",
 		Module:     "auth",
 		Result:     "success",
+		AfterJSON: map[string]any{
+			"requires_second_factor": false,
+			"must_change_password":   mustChange,
+		},
 	})
-
 	return c.JSON(http.StatusOK, resp.OKWithRequestID(middleware.GetRequestID(c), AuthLoginResponse{
-		ChallengeID: out.ChallengeID,
-		MaskedPhone: out.MaskedPhone,
-		ExpiresIn:   out.ExpiresIn,
+		RequiresSecondFactor: false,
+		AccessToken:          out.AccessToken,
+		RefreshToken:         out.RefreshToken,
+		ExpiresIn:            out.ExpiresIn,
+		MustChangePassword:   mustChange,
+		PasswordUpdatedAt:    passwordUpdatedAt,
 	}))
 }
 
@@ -160,6 +223,12 @@ func (h *AuthHandler) Login(c echo.Context) error {
 // @Failure      200   {object}  resp.AuthLoginEnvelope
 // @Router        /api/v1/auth/login/verify [post]
 func (h *AuthHandler) LoginVerify(c echo.Context) error {
+	if !h.LoginSecondFactorEnabled {
+		return c.JSON(http.StatusOK, resp.ErrorWithRequestID(middleware.GetRequestID(c), resp.CodeValidation, "login_second_factor_not_enabled"))
+	}
+	if h.LoginVerifyUC == nil {
+		return c.JSON(http.StatusOK, resp.ErrorWithRequestID(middleware.GetRequestID(c), resp.CodeServerError, "login_second_factor_not_configured"))
+	}
 	var req AuthLoginVerifyRequest
 	if err := c.Bind(&req); err != nil {
 		logAudit(c, h.AuditUC, usecase.AuditWriteInput{

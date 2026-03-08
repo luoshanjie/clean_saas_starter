@@ -14,14 +14,14 @@ import (
 func TestNewBootstrapHandlers_FileHandlerOptional(t *testing.T) {
 	now := func() time.Time { return time.Unix(0, 0) }
 
-	withoutOSS := newBootstrapHandlers(&bootstrapRepos{}, nil, func() string { return "id" }, now, "secret")
+	withoutOSS := newBootstrapHandlers(&bootstrapRepos{}, nil, func() string { return "id" }, now, "secret", AuthConfig{})
 	if withoutOSS.fileHandler != nil {
 		t.Fatalf("expected file handler to be nil when OSS is disabled")
 	}
 
 	withOSS := newBootstrapHandlers(&bootstrapRepos{
 		objectStorage: &storagerepo.MockObjectStorage{Now: now},
-	}, nil, func() string { return "id" }, now, "secret")
+	}, nil, func() string { return "id" }, now, "secret", AuthConfig{})
 	if withOSS.fileHandler == nil {
 		t.Fatalf("expected file handler to be wired when OSS is enabled")
 	}

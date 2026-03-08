@@ -111,8 +111,9 @@ type loginChallengeResp struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    struct {
-		ChallengeID string `json:"challenge_id"`
-		MaskedPhone string `json:"masked_phone"`
+		RequiresSecondFactor bool   `json:"requires_second_factor"`
+		ChallengeID          string `json:"challenge_id"`
+		MaskedPhone          string `json:"masked_phone"`
 	} `json:"data"`
 }
 
@@ -120,7 +121,9 @@ type loginVerifyResp struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    struct {
-		AccessToken string `json:"access_token"`
+		AccessToken        string `json:"access_token"`
+		RefreshToken       string `json:"refresh_token"`
+		MustChangePassword bool   `json:"must_change_password"`
 	} `json:"data"`
 }
 
@@ -199,8 +202,9 @@ func TestAuthHandler_LoginChallenge(t *testing.T) {
 			Now:       func() time.Time { return time.Unix(1, 0) },
 			MockCode:  "123456",
 		},
-		MeUC: &usecase.AuthMeUsecase{},
-		JWT:  middleware.JWTMiddleware{Secret: []byte("s")},
+		MeUC:                     &usecase.AuthMeUsecase{},
+		JWT:                      middleware.JWTMiddleware{Secret: []byte("s")},
+		LoginSecondFactorEnabled: true,
 	}
 
 	body := []byte(`{"account":"a","password":"pass"}`)
@@ -220,8 +224,52 @@ func TestAuthHandler_LoginChallenge(t *testing.T) {
 	if resp.Code != 0 {
 		t.Fatalf("expected code 0, got %d", resp.Code)
 	}
+	if !resp.Data.RequiresSecondFactor {
+		t.Fatalf("expected requires_second_factor=true")
+	}
 	if resp.Data.ChallengeID == "" || resp.Data.MaskedPhone == "" {
 		t.Fatalf("expected challenge response, got: %+v", resp.Data)
+	}
+}
+
+func TestAuthHandler_LoginDirectWhenSecondFactorDisabled(t *testing.T) {
+	e := echo.New()
+
+	hash, _ := bcrypt.GenerateFromPassword([]byte("pass"), bcrypt.DefaultCost)
+	repo := &mockAuthRepo{
+		user: &model.User{ID: "u1", Role: "tenant_member", ScopeType: "tenant", TenantID: "t1"},
+		hash: string(hash),
+	}
+	h := &handler.AuthHandler{
+		LoginUC: &usecase.AuthLoginUsecase{
+			Repo: repo,
+			TokenGen: func(ctx context.Context, user *model.User) (string, string, int, error) {
+				return "tok", "rt", 1800, nil
+			},
+		},
+		MeUC: &usecase.AuthMeUsecase{},
+		JWT:  middleware.JWTMiddleware{Secret: []byte("s")},
+	}
+
+	body := []byte(`{"account":"a","password":"pass"}`)
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	if err := h.Login(c); err != nil {
+		t.Fatalf("handler error: %v", err)
+	}
+
+	var resp loginVerifyResp
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("invalid json: %v", err)
+	}
+	if resp.Code != 0 {
+		t.Fatalf("expected code 0, got %d", resp.Code)
+	}
+	if resp.Data.AccessToken == "" || resp.Data.RefreshToken == "" {
+		t.Fatalf("expected direct token response, got %+v", resp.Data)
 	}
 }
 
@@ -248,8 +296,9 @@ func TestAuthHandler_LoginVerify(t *testing.T) {
 			},
 			Now: time.Now,
 		},
-		MeUC: &usecase.AuthMeUsecase{},
-		JWT:  middleware.JWTMiddleware{Secret: []byte("s")},
+		MeUC:                     &usecase.AuthMeUsecase{},
+		JWT:                      middleware.JWTMiddleware{Secret: []byte("s")},
+		LoginSecondFactorEnabled: true,
 	}
 
 	body := []byte(`{"challenge_id":"c1","otp_code":"123456"}`)
@@ -271,6 +320,32 @@ func TestAuthHandler_LoginVerify(t *testing.T) {
 	}
 	if resp.Data.AccessToken == "" {
 		t.Fatalf("expected access_token")
+	}
+}
+
+func TestAuthHandler_LoginVerifyRejectedWhenSecondFactorDisabled(t *testing.T) {
+	e := echo.New()
+	h := &handler.AuthHandler{}
+
+	body := []byte(`{"challenge_id":"c1","otp_code":"123456"}`)
+	req := httptest.NewRequest(http.MethodPost, "/auth/login/verify", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	if err := h.LoginVerify(c); err != nil {
+		t.Fatalf("handler error: %v", err)
+	}
+
+	var resp struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("invalid json: %v", err)
+	}
+	if resp.Code == 0 || resp.Message != "login_second_factor_not_enabled" {
+		t.Fatalf("unexpected response: %+v", resp)
 	}
 }
 

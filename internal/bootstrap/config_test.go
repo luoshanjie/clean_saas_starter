@@ -62,6 +62,8 @@ database:
   driver: "sqlite3"
   dsn: "postgres://u:p@10.0.0.1:5432/service?sslmode=disable"
   sqlite_path: "./var/service.db"
+auth:
+  login_second_factor_enabled: true
 oss:
   endpoint: "127.0.0.1:9000"
   access_key: "minioadmin"
@@ -99,6 +101,9 @@ log:
 	}
 	if cfg.SQLitePath != "./var/service.db" {
 		t.Fatalf("unexpected sqlite path: %s", cfg.SQLitePath)
+	}
+	if !cfg.Auth.LoginSecondFactorEnabled {
+		t.Fatalf("expected auth login second factor enabled from yaml")
 	}
 	if cfg.OSS.Endpoint != "127.0.0.1:9000" {
 		t.Fatalf("unexpected oss endpoint: %s", cfg.OSS.Endpoint)
@@ -138,6 +143,7 @@ log:
 	t.Setenv("DB_DSN", "postgres://env:env@10.0.0.2:5432/service?sslmode=disable")
 	t.Setenv("SQLITE_PATH", "./var/env.db")
 	t.Setenv("JWT_SECRET", "env_secret")
+	t.Setenv("AUTH_LOGIN_SECOND_FACTOR_ENABLED", "true")
 	t.Setenv("LOG_LEVEL", "debug")
 	t.Setenv("LOG_CONSOLE", "1")
 	t.Setenv("OSS_ACCESS_KEY", "env_minio_access_key")
@@ -160,6 +166,9 @@ log:
 	}
 	if cfg.SQLitePath != "./var/env.db" {
 		t.Fatalf("unexpected sqlite path: %s", cfg.SQLitePath)
+	}
+	if !cfg.Auth.LoginSecondFactorEnabled {
+		t.Fatalf("expected auth login second factor enabled from env")
 	}
 	if cfg.Log.Level != "debug" {
 		t.Fatalf("unexpected log level: %s", cfg.Log.Level)
@@ -207,6 +216,9 @@ func TestLoadConfig_EnvOnly(t *testing.T) {
 	}
 	if cfg.SQLitePath != "./var/local.db" {
 		t.Fatalf("unexpected sqlite path: %s", cfg.SQLitePath)
+	}
+	if cfg.Auth.LoginSecondFactorEnabled {
+		t.Fatalf("expected auth login second factor disabled by default")
 	}
 	if cfg.Log.Dir != "/tmp/logs" {
 		t.Fatalf("unexpected log dir: %s", cfg.Log.Dir)

@@ -68,6 +68,10 @@ func wireAuthHandlers(h *bootstrapHandlers, d handlerDeps) {
 		TokenGen:  tokenGen,
 		Now:       d.now,
 	}
+	authLogin := &usecase.AuthLoginUsecase{
+		Repo:     d.repos.authRepo,
+		TokenGen: tokenGen,
+	}
 	authRefresh := &usecase.AuthRefreshUsecase{
 		ParseRefresh: func(token string) (*model.User, error) {
 			claims, err := middleware.JWTMiddleware{Secret: []byte(d.jwtSecret)}.ParseToken(token)
@@ -120,17 +124,19 @@ func wireAuthHandlers(h *bootstrapHandlers, d handlerDeps) {
 	}
 
 	h.authHandler = &handler.AuthHandler{
-		LoginChallengeUC:       authLoginChallenge,
-		LoginVerifyUC:          authLoginVerify,
-		RefreshUC:              authRefresh,
-		MeUC:                   authMe,
-		ChangePasswordUC:       authChangePassword,
-		UpdateDisplayNameUC:    authUpdateDisplayName,
-		ChangePhoneChallengeUC: authChangePhoneChallenge,
-		ChangePhoneResendUC:    authChangePhoneResend,
-		ChangePhoneVerifyUC:    authChangePhoneVerify,
-		AuditUC:                auditWrite,
-		JWT:                    middleware.JWTMiddleware{Secret: []byte(d.jwtSecret)},
+		LoginUC:                  authLogin,
+		LoginChallengeUC:         authLoginChallenge,
+		LoginVerifyUC:            authLoginVerify,
+		RefreshUC:                authRefresh,
+		MeUC:                     authMe,
+		ChangePasswordUC:         authChangePassword,
+		UpdateDisplayNameUC:      authUpdateDisplayName,
+		ChangePhoneChallengeUC:   authChangePhoneChallenge,
+		ChangePhoneResendUC:      authChangePhoneResend,
+		ChangePhoneVerifyUC:      authChangePhoneVerify,
+		AuditUC:                  auditWrite,
+		JWT:                      middleware.JWTMiddleware{Secret: []byte(d.jwtSecret)},
+		LoginSecondFactorEnabled: d.auth.LoginSecondFactorEnabled,
 	}
 	h.healthHandler = &handler.HealthHandler{}
 }

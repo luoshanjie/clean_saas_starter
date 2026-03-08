@@ -50,7 +50,7 @@ func Build(ctx context.Context, e *echo.Echo, db *DBRuntime, idGen func() string
 	if err != nil {
 		return nil, err
 	}
-	handlers := newBootstrapHandlers(repos, permChecker, idGen, now, cfg.JWTSecret)
+	handlers := newBootstrapHandlers(repos, permChecker, idGen, now, cfg.JWTSecret, cfg.Auth)
 	registerRoutes(e, handlers, repos, permChecker)
 
 	var cleanupUC *usecase.CleanupExpiredUploadSessionsUsecase

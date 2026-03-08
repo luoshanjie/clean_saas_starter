@@ -25,6 +25,13 @@ Current core stack:
 - PostgreSQL
 - MinIO (optional, only required when file storage is enabled)
 
+Authentication policy:
+
+- login second factor is optional at the framework level
+- by default, `/api/v1/auth/login` can return tokens directly after account/password verification
+- when `auth.login_second_factor_enabled=true`, login switches to `login -> verify` with OTP challenge
+- second factor delivery can be implemented by users with SMS, email, TOTP, or other adapters
+
 Database policy:
 
 - PostgreSQL is the recommended production path
@@ -89,6 +96,20 @@ Before `make dev`, make sure:
 3. SQLite baseline files are available under `migrations/sqlite/`
 4. `.env` or `app.yaml` points to the correct database
 5. configure OSS only if you want to enable file upload and download routes
+6. enable login second factor only if your project really needs it
+
+Authentication config example:
+
+```yaml
+auth:
+  login_second_factor_enabled: false
+```
+
+Or in `.env`:
+
+```bash
+AUTH_LOGIN_SECOND_FACTOR_ENABLED=false
+```
 
 ### Generate A Module In The Current Project
 

@@ -52,6 +52,9 @@ func TestAuthFlow_Integration(t *testing.T) {
 	}, func() string { return "tid" }, time.Now, bootstrap.Config{
 		DBDriver:  bootstrap.DBDriverPostgres,
 		JWTSecret: "test_secret",
+		Auth: bootstrap.AuthConfig{
+			LoginSecondFactorEnabled: true,
+		},
 	}, logger.NewNopLogger())
 	if err != nil {
 		t.Fatalf("build: %v", err)

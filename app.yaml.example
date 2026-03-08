@@ -11,6 +11,9 @@ database:
   # Reserved for upcoming SQLite bootstrap support.
   # sqlite_path: "./var/service.db"
 
+auth:
+  login_second_factor_enabled: false
+
 log:
   dir: "/app/logs"
   level: "info"

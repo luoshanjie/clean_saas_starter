@@ -20,6 +20,7 @@ type handlerDeps struct {
 	idGen     func() string
 	now       func() time.Time
 	jwtSecret string
+	auth      AuthConfig
 }
 
 func newBootstrapHandlers(
@@ -28,6 +29,7 @@ func newBootstrapHandlers(
 	idGen func() string,
 	now func() time.Time,
 	jwtSecret string,
+	authCfg AuthConfig,
 ) *bootstrapHandlers {
 	d := handlerDeps{
 		repos:     repos,
@@ -35,6 +37,7 @@ func newBootstrapHandlers(
 		idGen:     idGen,
 		now:       now,
 		jwtSecret: jwtSecret,
+		auth:      authCfg,
 	}
 	h := &bootstrapHandlers{}
 	wireAuthHandlers(h, d)

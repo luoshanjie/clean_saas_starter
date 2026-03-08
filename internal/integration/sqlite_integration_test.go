@@ -112,6 +112,9 @@ func TestSQLiteFlow_Integration(t *testing.T) {
 		DBDriver:   bootstrap.DBDriverSQLite,
 		SQLitePath: dbPath,
 		JWTSecret:  "test_secret",
+		Auth: bootstrap.AuthConfig{
+			LoginSecondFactorEnabled: true,
+		},
 	}, logger.NewNopLogger())
 	if err != nil {
 		t.Fatalf("build sqlite app: %v", err)

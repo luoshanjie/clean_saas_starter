@@ -21,6 +21,7 @@ type Config struct {
 	SQLitePath    string
 	SkipDB        bool
 	JWTSecret     string
+	Auth          AuthConfig
 	OSS           OSSConfig
 	UploadCleanup UploadCleanupConfig
 	Log           logger.Config
@@ -35,6 +36,10 @@ type UploadCleanupConfig struct {
 	Enabled   bool
 	Interval  time.Duration
 	BatchSize int
+}
+
+type AuthConfig struct {
+	LoginSecondFactorEnabled bool
 }
 
 type OSSConfig struct {
@@ -63,6 +68,9 @@ type fileConfig struct {
 		DSN        string `yaml:"dsn"`
 		SQLitePath string `yaml:"sqlite_path"`
 	} `yaml:"database"`
+	Auth struct {
+		LoginSecondFactorEnabled *bool `yaml:"login_second_factor_enabled"`
+	} `yaml:"auth"`
 	OSS struct {
 		Endpoint      string `yaml:"endpoint"`
 		AccessKey     string `yaml:"access_key"`
@@ -99,6 +107,9 @@ func LoadConfig() (Config, error) {
 		SQLitePath: getenvDefault("SQLITE_PATH", ""),
 		SkipDB:     os.Getenv("SKIP_DB") == "1",
 		JWTSecret:  os.Getenv("JWT_SECRET"),
+		Auth: AuthConfig{
+			LoginSecondFactorEnabled: false,
+		},
 		Log: logger.Config{
 			Dir:           getenvDefault("LOG_DIR", "./logs"),
 			Level:         getenvDefault("LOG_LEVEL", "info"),
@@ -188,6 +199,9 @@ func mergeFileConfig(dst *Config, src fileConfig) {
 	if src.Database.SQLitePath != "" {
 		dst.SQLitePath = src.Database.SQLitePath
 	}
+	if src.Auth.LoginSecondFactorEnabled != nil {
+		dst.Auth.LoginSecondFactorEnabled = *src.Auth.LoginSecondFactorEnabled
+	}
 	if src.OSS.Endpoint != "" {
 		dst.OSS.Endpoint = src.OSS.Endpoint
 	}
@@ -247,6 +261,9 @@ func applyEnvOverrides(cfg *Config, defaultConsoleFormat string) {
 	}
 	if v := strings.TrimSpace(os.Getenv("JWT_SECRET")); v != "" {
 		cfg.JWTSecret = v
+	}
+	if v := strings.TrimSpace(os.Getenv("AUTH_LOGIN_SECOND_FACTOR_ENABLED")); v != "" {
+		cfg.Auth.LoginSecondFactorEnabled = !strings.EqualFold(v, "0") && !strings.EqualFold(v, "false")
 	}
 	if v := strings.TrimSpace(os.Getenv("OSS_ENDPOINT")); v != "" {
 		cfg.OSS.Endpoint = v

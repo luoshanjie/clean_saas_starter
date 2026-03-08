@@ -25,6 +25,13 @@
 - PostgreSQL
 - MinIO（可选，只有启用文件存储能力时才需要）
 
+认证策略：
+
+- 登录二次验证在框架层是可选能力
+- 默认情况下，`/api/v1/auth/login` 在账号密码校验通过后可以直接返回 token
+- 当 `auth.login_second_factor_enabled=true` 时，登录流程切换为 `login -> verify` 的 OTP challenge 模式
+- 二次验证的投递方式可由使用者自行实现为短信、邮件、TOTP 等 adapter
+
 数据库策略：
 
 - PostgreSQL 是更推荐的生产路径
@@ -89,6 +96,20 @@ make dev
 3. SQLite baseline 文件位于 `migrations/sqlite/`
 4. `.env` 或 `app.yaml` 已正确指向数据库
 5. 只有当你要启用文件上传/下载能力时，才需要继续配置 OSS
+6. 只有当你的项目确实需要时，才开启登录二次验证
+
+认证配置示例：
+
+```yaml
+auth:
+  login_second_factor_enabled: false
+```
+
+或者在 `.env` 中：
+
+```bash
+AUTH_LOGIN_SECOND_FACTOR_ENABLED=false
+```
 
 ### 在当前项目里生成一个模块
 
