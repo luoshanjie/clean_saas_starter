@@ -86,7 +86,7 @@ Why not keep the current mock fallback:
 
 - it hides misconfiguration
 - it makes the scaffold look functional when file storage is actually unavailable
-- it complicates later SQLite work by mixing "feature disabled" with "fake adapter enabled"
+- it mixes "feature disabled" with "fake adapter enabled"
 
 ## Implementation Checklist
 
@@ -182,14 +182,3 @@ This phase is complete only when all of the following are true:
 - service can still start and expose file routes when MinIO is configured
 - README and config examples do not imply MinIO is mandatory
 - no fake object storage URLs are returned in the disabled state
-
-## Follow-up After OSS
-
-Once OSS optionality is complete, the next phase is SQLite support.
-
-That phase should use these constraints:
-
-- PostgreSQL remains the primary production path
-- SQLite is for local development, demos, and low-friction onboarding
-- PostgreSQL RLS behavior cannot be assumed in SQLite mode
-- tenant isolation in SQLite mode must be enforced in application code

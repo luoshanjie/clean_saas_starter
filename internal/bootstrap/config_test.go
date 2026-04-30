@@ -38,9 +38,9 @@ func TestNormalizeDBDriver(t *testing.T) {
 		"":          DBDriverPostgres,
 		"postgres":  DBDriverPostgres,
 		"POSTGRES":  DBDriverPostgres,
-		"sqlite":    DBDriverSQLite,
-		"sqlite3":   DBDriverSQLite,
-		"SQLITE3":   DBDriverSQLite,
+		"sqlite":    "sqlite",
+		"sqlite3":   "sqlite3",
+		"SQLITE3":   "sqlite3",
 		"custom-db": "custom-db",
 	}
 	for in, want := range cases {
@@ -59,9 +59,8 @@ server:
   addr: ":9527"
   jwt_secret: "yaml_secret"
 database:
-  driver: "sqlite3"
+  driver: "postgres"
   dsn: "postgres://u:p@10.0.0.1:5432/service?sslmode=disable"
-  sqlite_path: "./var/service.db"
 auth:
   login_second_factor_enabled: true
 oss:
@@ -96,11 +95,8 @@ log:
 	if cfg.DBDSN != "postgres://u:p@10.0.0.1:5432/service?sslmode=disable" {
 		t.Fatalf("unexpected dsn: %s", cfg.DBDSN)
 	}
-	if cfg.DBDriver != DBDriverSQLite {
+	if cfg.DBDriver != DBDriverPostgres {
 		t.Fatalf("unexpected db driver: %s", cfg.DBDriver)
-	}
-	if cfg.SQLitePath != "./var/service.db" {
-		t.Fatalf("unexpected sqlite path: %s", cfg.SQLitePath)
 	}
 	if !cfg.Auth.LoginSecondFactorEnabled {
 		t.Fatalf("expected auth login second factor enabled from yaml")
@@ -141,7 +137,6 @@ log:
 	t.Setenv("ADDR", ":9000")
 	t.Setenv("DB_DRIVER", "postgres")
 	t.Setenv("DB_DSN", "postgres://env:env@10.0.0.2:5432/service?sslmode=disable")
-	t.Setenv("SQLITE_PATH", "./var/env.db")
 	t.Setenv("JWT_SECRET", "env_secret")
 	t.Setenv("AUTH_LOGIN_SECOND_FACTOR_ENABLED", "true")
 	t.Setenv("LOG_LEVEL", "debug")
@@ -164,9 +159,6 @@ log:
 	if cfg.DBDriver != DBDriverPostgres {
 		t.Fatalf("unexpected db driver: %s", cfg.DBDriver)
 	}
-	if cfg.SQLitePath != "./var/env.db" {
-		t.Fatalf("unexpected sqlite path: %s", cfg.SQLitePath)
-	}
 	if !cfg.Auth.LoginSecondFactorEnabled {
 		t.Fatalf("expected auth login second factor enabled from env")
 	}
@@ -185,9 +177,8 @@ func TestLoadConfig_EnvOnly(t *testing.T) {
 	clearConfigEnv(t)
 	t.Setenv("APP_CONFIG_FILE", filepath.Join(t.TempDir(), "not-found.yaml"))
 	t.Setenv("ADDR", ":9527")
-	t.Setenv("DB_DRIVER", "sqlite")
+	t.Setenv("DB_DRIVER", "postgres")
 	t.Setenv("DB_DSN", "postgres://env:env@10.0.0.2:5432/service?sslmode=disable")
-	t.Setenv("SQLITE_PATH", "./var/local.db")
 	t.Setenv("JWT_SECRET", "env_secret")
 	t.Setenv("LOG_DIR", "/tmp/logs")
 	t.Setenv("LOG_CONSOLE", "0")
@@ -211,11 +202,8 @@ func TestLoadConfig_EnvOnly(t *testing.T) {
 	if cfg.DBDSN != "postgres://env:env@10.0.0.2:5432/service?sslmode=disable" {
 		t.Fatalf("unexpected dsn: %s", cfg.DBDSN)
 	}
-	if cfg.DBDriver != DBDriverSQLite {
+	if cfg.DBDriver != DBDriverPostgres {
 		t.Fatalf("unexpected db driver: %s", cfg.DBDriver)
-	}
-	if cfg.SQLitePath != "./var/local.db" {
-		t.Fatalf("unexpected sqlite path: %s", cfg.SQLitePath)
 	}
 	if cfg.Auth.LoginSecondFactorEnabled {
 		t.Fatalf("expected auth login second factor disabled by default")
@@ -260,7 +248,6 @@ func clearConfigEnv(t *testing.T) {
 		"ADDR",
 		"DB_DRIVER",
 		"DB_DSN",
-		"SQLITE_PATH",
 		"SKIP_DB",
 		"JWT_SECRET",
 		"APP_ENV",

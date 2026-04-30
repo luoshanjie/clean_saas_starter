@@ -42,12 +42,10 @@
 
 数据库策略：
 
-- PostgreSQL 是更推荐的生产路径
+- 支持 PostgreSQL 兼容数据库作为运行路径
 - PostgreSQL 可以通过 RLS 提供额外一层数据库级租户隔离保护
-- SQLite 面向本地开发、演示和低门槛上手
-- SQLite 不提供 PostgreSQL 这种数据库级 RLS 保护
-- 在 SQLite 模式下，租户隔离必须依赖应用层和 repo 层的显式控制
-- SQLite 启动链路会逐步补齐，当前主干运行路径仍然是 PostgreSQL
+- 人大金仓可通过 PostgreSQL 兼容协议接入，具体 SQL 兼容性需在项目内验证
+- 不内置 SQLite，确保生成的 Linux/ARM64 可执行程序可以保持 cgo-free，降低 glibc 链接风险
 
 对象存储策略：
 
@@ -108,12 +106,11 @@ make dev-swagger
 在执行 `make dev` 之前，请确认：
 
 1. 数据库已经创建
-2. 如果是 PostgreSQL，已经执行 `migrations/pgsql/` 里的 SQL
-3. SQLite baseline 文件位于 `migrations/sqlite/`
-4. `.env` 或 `app.yaml` 已正确指向数据库
-5. 只有当你要启用文件上传/下载能力时，才需要继续配置 OSS
-6. 只有当你的项目确实需要时，才开启登录二次验证
-7. Swagger 是可选能力，`make dev` 默认不会启用
+2. 如果是 PostgreSQL 兼容数据库，已经执行 `migrations/pgsql/` 里的 SQL
+3. `.env` 或 `app.yaml` 已正确指向数据库
+4. 只有当你要启用文件上传/下载能力时，才需要继续配置 OSS
+5. 只有当你的项目确实需要时，才开启登录二次验证
+6. Swagger 是可选能力，`make dev` 默认不会启用
 
 认证配置示例：
 
@@ -192,7 +189,7 @@ internal/app/usecase/post_test.go
 - `db/query/`
   - sqlc 查询定义
 - `migrations/`
-  - 数据库迁移，包含 PostgreSQL 和 SQLite baseline
+  - PostgreSQL 兼容数据库迁移
 - `docs/`
   - 设计文档和脚手架规划
 
@@ -201,9 +198,7 @@ internal/app/usecase/post_test.go
 - [docs/kernel-capability-boundary.md](docs/kernel-capability-boundary.md)
   - 内核与业务模块边界
 - [docs/oss-optional-plan.md](docs/oss-optional-plan.md)
-  - 先把对象存储改成可选能力，再进入 SQLite 支持
-- [docs/sqlite-support-plan.md](docs/sqlite-support-plan.md)
-  - 增加 SQLite 作为低门槛本地数据库路径
+  - 对象存储可选能力设计
 - [docs/file-capability-plan.md](docs/file-capability-plan.md)
   - 文件能力选配边界与演进方案
 - [docs/scaffolding-cli-plan.md](docs/scaffolding-cli-plan.md)

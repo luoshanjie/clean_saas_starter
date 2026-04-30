@@ -30,9 +30,6 @@ func Run(ctx context.Context) error {
 		if cfg.DBDriver == DBDriverPostgres && cfg.DBDSN == "" {
 			return errors.New("DB_DSN is empty")
 		}
-		if cfg.DBDriver == DBDriverSQLite && cfg.SQLitePath == "" {
-			return errors.New("SQLITE_PATH is empty")
-		}
 		db, err := InitDB(ctx, cfg)
 		if err != nil {
 			return err

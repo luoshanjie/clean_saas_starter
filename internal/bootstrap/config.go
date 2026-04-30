@@ -18,7 +18,6 @@ type Config struct {
 	Addr          string
 	DBDriver      string
 	DBDSN         string
-	SQLitePath    string
 	SkipDB        bool
 	JWTSecret     string
 	Auth          AuthConfig
@@ -29,7 +28,6 @@ type Config struct {
 
 const (
 	DBDriverPostgres = "postgres"
-	DBDriverSQLite   = "sqlite"
 )
 
 type UploadCleanupConfig struct {
@@ -64,9 +62,8 @@ type fileConfig struct {
 		JWTSecret string `yaml:"jwt_secret"`
 	} `yaml:"server"`
 	Database struct {
-		Driver     string `yaml:"driver"`
-		DSN        string `yaml:"dsn"`
-		SQLitePath string `yaml:"sqlite_path"`
+		Driver string `yaml:"driver"`
+		DSN    string `yaml:"dsn"`
 	} `yaml:"database"`
 	Auth struct {
 		LoginSecondFactorEnabled *bool `yaml:"login_second_factor_enabled"`
@@ -101,12 +98,11 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
-		Addr:       getenvDefault("ADDR", ":8080"),
-		DBDriver:   normalizeDBDriver(getenvDefault("DB_DRIVER", DBDriverPostgres)),
-		DBDSN:      os.Getenv("DB_DSN"),
-		SQLitePath: getenvDefault("SQLITE_PATH", ""),
-		SkipDB:     os.Getenv("SKIP_DB") == "1",
-		JWTSecret:  os.Getenv("JWT_SECRET"),
+		Addr:      getenvDefault("ADDR", ":8080"),
+		DBDriver:  normalizeDBDriver(getenvDefault("DB_DRIVER", DBDriverPostgres)),
+		DBDSN:     os.Getenv("DB_DSN"),
+		SkipDB:    os.Getenv("SKIP_DB") == "1",
+		JWTSecret: os.Getenv("JWT_SECRET"),
 		Auth: AuthConfig{
 			LoginSecondFactorEnabled: false,
 		},
@@ -196,9 +192,6 @@ func mergeFileConfig(dst *Config, src fileConfig) {
 	if src.Database.Driver != "" {
 		dst.DBDriver = normalizeDBDriver(src.Database.Driver)
 	}
-	if src.Database.SQLitePath != "" {
-		dst.SQLitePath = src.Database.SQLitePath
-	}
 	if src.Auth.LoginSecondFactorEnabled != nil {
 		dst.Auth.LoginSecondFactorEnabled = *src.Auth.LoginSecondFactorEnabled
 	}
@@ -255,9 +248,6 @@ func applyEnvOverrides(cfg *Config, defaultConsoleFormat string) {
 	}
 	if v := strings.TrimSpace(os.Getenv("DB_DRIVER")); v != "" {
 		cfg.DBDriver = normalizeDBDriver(v)
-	}
-	if v := strings.TrimSpace(os.Getenv("SQLITE_PATH")); v != "" {
-		cfg.SQLitePath = v
 	}
 	if v := strings.TrimSpace(os.Getenv("JWT_SECRET")); v != "" {
 		cfg.JWTSecret = v
@@ -322,8 +312,6 @@ func normalizeDBDriver(raw string) string {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
 	case "", DBDriverPostgres:
 		return DBDriverPostgres
-	case "sqlite3", DBDriverSQLite:
-		return DBDriverSQLite
 	default:
 		return strings.ToLower(strings.TrimSpace(raw))
 	}

@@ -42,12 +42,10 @@ Authentication policy:
 
 Database policy:
 
-- PostgreSQL is the recommended production path
+- PostgreSQL-compatible databases are the supported path
 - PostgreSQL can provide an extra database-level tenant isolation layer through RLS
-- SQLite is intended for local development, demos, and low-friction onboarding
-- SQLite does not provide PostgreSQL-style database-level RLS protection
-- tenant isolation in SQLite mode must rely on application and repository logic
-- SQLite bootstrap wiring is being added incrementally; the current runtime path still boots with PostgreSQL
+- KingbaseES can be used through its PostgreSQL-compatible protocol after project-level SQL validation
+- SQLite is not bundled so generated Linux/ARM64 binaries can stay cgo-free and avoid glibc linkage risk
 
 Object storage policy:
 
@@ -108,12 +106,11 @@ make dev-swagger
 Before `make dev`, make sure:
 
 1. your database has been created
-2. for PostgreSQL, SQL in `migrations/pgsql/` has been executed
-3. SQLite baseline files are available under `migrations/sqlite/`
-4. `.env` or `app.yaml` points to the correct database
-5. configure OSS only if you want to enable file upload and download routes
-6. enable login second factor only if your project really needs it
-7. Swagger is optional and is not enabled by default in `make dev`
+2. for PostgreSQL-compatible databases, SQL in `migrations/pgsql/` has been executed
+3. `.env` or `app.yaml` points to the correct database
+4. configure OSS only if you want to enable file upload and download routes
+5. enable login second factor only if your project really needs it
+6. Swagger is optional and is not enabled by default in `make dev`
 
 Authentication config example:
 
@@ -192,7 +189,7 @@ Main directories:
 - `db/query/`
   - sqlc query definitions
 - `migrations/`
-  - database migrations, including PostgreSQL and SQLite baselines
+  - database migrations for PostgreSQL-compatible databases
 - `docs/`
   - design and scaffold planning documents
 
@@ -201,9 +198,7 @@ Important docs:
 - [docs/kernel-capability-boundary.md](docs/kernel-capability-boundary.md)
   - kernel vs business-module boundary
 - [docs/oss-optional-plan.md](docs/oss-optional-plan.md)
-  - make object storage optional before SQLite support
-- [docs/sqlite-support-plan.md](docs/sqlite-support-plan.md)
-  - add SQLite as the low-friction local database path
+  - make object storage optional
 - [docs/file-capability-plan.md](docs/file-capability-plan.md)
   - optional file capability boundary and evolution path
 - [docs/scaffolding-cli-plan.md](docs/scaffolding-cli-plan.md)

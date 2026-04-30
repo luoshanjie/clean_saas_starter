@@ -34,7 +34,6 @@ Relevant files:
 - [`internal/domain/port/file_upload_session_repo.go`](../internal/domain/port/file_upload_session_repo.go)
 - [`internal/repo/storage/minio_object_storage.go`](../internal/repo/storage/minio_object_storage.go)
 - [`internal/repo/pg/file_upload_session_repo_pg.go`](../internal/repo/pg/file_upload_session_repo_pg.go)
-- [`internal/repo/sqlite/file_upload_session_repo_sqlite.go`](../internal/repo/sqlite/file_upload_session_repo_sqlite.go)
 
 ## What Is Good And Worth Reusing
 

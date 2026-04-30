@@ -8,7 +8,6 @@ import (
 	"service/internal/domain/port"
 	cacherepo "service/internal/repo/cache"
 	"service/internal/repo/pg"
-	sqliterepo "service/internal/repo/sqlite"
 	storagerepo "service/internal/repo/storage"
 )
 
@@ -41,34 +40,20 @@ func newBootstrapRepos(db *DBRuntime, now func() time.Time, ossCfg OSSConfig, _ 
 	if err != nil {
 		return nil, err
 	}
-	switch db.Driver {
-	case DBDriverPostgres:
-		if db.Postgres == nil {
-			return nil, errors.New("nil postgres pool")
-		}
-		return &bootstrapRepos{
-			authRepo:              &pg.AuthRepoPG{DB: db.Postgres},
-			tenantRepo:            &pg.TenantRepoPG{DB: db.Postgres},
-			auditRepo:             &pg.AuditRepoPG{DB: db.Postgres},
-			fileRepo:              &pg.FileRepoPG{DB: db.Postgres},
-			fileUploadSessionRepo: &pg.FileUploadSessionRepoPG{DB: db.Postgres},
-			objectStorage:         newObjectStorage(ossCfg, now),
-		}, nil
-	case DBDriverSQLite:
-		if db.SQLite == nil {
-			return nil, errors.New("nil sqlite db")
-		}
-		return &bootstrapRepos{
-			authRepo:              &sqliterepo.AuthRepoSQLite{DB: db.SQLite},
-			tenantRepo:            &sqliterepo.TenantRepoSQLite{DB: db.SQLite},
-			auditRepo:             &sqliterepo.AuditRepoSQLite{DB: db.SQLite},
-			fileRepo:              &sqliterepo.FileRepoSQLite{DB: db.SQLite},
-			fileUploadSessionRepo: &sqliterepo.FileUploadSessionRepoSQLite{DB: db.SQLite},
-			objectStorage:         newObjectStorage(ossCfg, now),
-		}, nil
-	default:
+	if db.Driver != DBDriverPostgres {
 		return nil, errors.New("unsupported database runtime: " + db.Driver)
 	}
+	if db.Postgres == nil {
+		return nil, errors.New("nil postgres pool")
+	}
+	return &bootstrapRepos{
+		authRepo:              &pg.AuthRepoPG{DB: db.Postgres},
+		tenantRepo:            &pg.TenantRepoPG{DB: db.Postgres},
+		auditRepo:             &pg.AuditRepoPG{DB: db.Postgres},
+		fileRepo:              &pg.FileRepoPG{DB: db.Postgres},
+		fileUploadSessionRepo: &pg.FileUploadSessionRepoPG{DB: db.Postgres},
+		objectStorage:         newObjectStorage(ossCfg, now),
+	}, nil
 }
 
 func newObjectStorage(c OSSConfig, now func() time.Time) port.ObjectStorage {

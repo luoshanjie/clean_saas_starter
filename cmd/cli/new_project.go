@@ -174,6 +174,16 @@ func shouldSkipProjectPath(rel string, isDir bool) bool {
 	if base == ".git" || base == "build" || base == "logs" || base == ".gocache" {
 		return true
 	}
+	normalized := filepath.ToSlash(rel)
+	if normalized == "migrations/sqlite" || strings.HasPrefix(normalized, "migrations/sqlite/") {
+		return true
+	}
+	if normalized == "internal/repo/sqlite" || strings.HasPrefix(normalized, "internal/repo/sqlite/") {
+		return true
+	}
+	if normalized == "docs/sqlite-support-plan.md" {
+		return true
+	}
 	if strings.HasSuffix(base, ".DS_Store") {
 		return true
 	}
@@ -216,7 +226,6 @@ func applyProjectReplacements(raw []byte, source sourceProjectMeta, spec project
 		"CREATE DATABASE "+source.DBName+"_release", "CREATE DATABASE "+spec.DBName+"_release",
 		"datname = '"+source.DBName+"_release'", "datname = '"+spec.DBName+"_release'",
 		":5432/"+source.DBName+"?", ":5432/"+spec.DBName+"?",
-		"./var/"+source.DBName+".db", "./var/"+spec.DBName+".db",
 		"Service API", spec.DisplayName+" API",
 		"Service API (development docs).", spec.DisplayName+" API (development docs).",
 	)
@@ -256,8 +265,7 @@ func printProjectNextSteps(spec projectSpec) {
 	fmt.Println("next steps:")
 	fmt.Printf("  cd %s\n", spec.OutputDir)
 	fmt.Println("  cp .env.example .env")
-	fmt.Println("  # execute SQL in migrations/pgsql/ for PostgreSQL")
-	fmt.Println("  # SQLite baseline is available under migrations/sqlite/")
+	fmt.Println("  # execute SQL in migrations/pgsql/ for PostgreSQL-compatible databases")
 	fmt.Println("  make build")
 	fmt.Println("  make dev")
 }
