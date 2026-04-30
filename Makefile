@@ -21,7 +21,8 @@ GIT_SHA := $(shell git rev-parse --short HEAD 2>/dev/null || echo "nogit")
 BUILD_TIME := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS := -X 'main.gitSHA=$(GIT_SHA)' -X 'main.buildTime=$(BUILD_TIME)'
 
-.PHONY: default build mac linux build-linux run clean test test-cover test-gate dep check-src swagger dev test-integration
+.PHONY: default build mac linux build-linux run clean test test-cover test-gate dep check-src swagger dev dev-swagger test-integration
+.PHONY: mac-arm64 linux-arm64
 .PHONY: sqlc-generate sqlc-vet sqlc sqlc-check
 .PHONY: cli
 
@@ -42,8 +43,17 @@ build: check-src
 
 mac:   OS=darwin
 mac:   build
+
+mac-arm64: OS=darwin
+mac-arm64: ARCH=arm64
+mac-arm64: build
+
 linux: OS=linux
 linux: build
+
+linux-arm64: OS=linux
+linux-arm64: ARCH=arm64
+linux-arm64: build
 build-linux: linux
 
 run: check-src
@@ -52,7 +62,12 @@ run: check-src
 
 ## -------- Dev --------
 dev: check-src
-	@echo "[${PROJECT}] Running in dev mode (load .env, enable swagger)..."
+	@echo "[${PROJECT}] Running in dev mode (load .env)..."
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+	go run "$(SRC)"
+
+dev-swagger: check-src
+	@echo "[${PROJECT}] Running in dev mode with swagger (requires generated docs)..."
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	GOFLAGS="-tags=swagger" go run "$(SRC)"
 
