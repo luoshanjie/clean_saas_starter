@@ -112,6 +112,34 @@ Before `make dev`, make sure:
 5. enable login second factor only if your project really needs it
 6. Swagger is optional and is not enabled by default in `make dev`
 
+### Deploy Without Docker
+
+For Linux/ARM64 hosts such as UOS on domestic ARM servers, build a cgo-free binary and systemd bundle:
+
+```bash
+make package-linux-arm64
+```
+
+Copy `build/package/` to the target host, then run as root:
+
+```bash
+cd build/package
+APP_NAME=service ./install.sh
+systemctl start service
+systemctl status service
+journalctl -u service -f
+```
+
+The systemd unit uses `Restart=on-failure` and `RestartSec=5`, so the service is restarted after crashes. It also limits restart storms with `StartLimitIntervalSec=60` and `StartLimitBurst=10`.
+
+Deployment files:
+
+- binary: `/opt/service/service`
+- config: `/etc/service/app.yaml`
+- environment: `/etc/service/service.env`
+- logs: `/var/log/service`
+- unit: `/etc/systemd/system/service.service`
+
 Authentication config example:
 
 ```yaml

@@ -8,6 +8,7 @@ PROJECT := service
 SRC := cmd/service/main.go
 # 编译产物目录
 BUILD_DIR := build
+PACKAGE_DIR := $(BUILD_DIR)/package
 # go build 缓存目录（避免默认缓存权限问题）
 GOCACHE := $(CURDIR)/.gocache
 export GOCACHE
@@ -23,6 +24,7 @@ LDFLAGS := -X 'main.gitSHA=$(GIT_SHA)' -X 'main.buildTime=$(BUILD_TIME)'
 
 .PHONY: default build mac linux build-linux run clean test test-cover test-gate dep check-src swagger dev dev-swagger test-integration
 .PHONY: mac-arm64 linux-arm64
+.PHONY: package-linux-arm64
 .PHONY: sqlc-generate sqlc-vet sqlc sqlc-check
 .PHONY: cli
 
@@ -55,6 +57,19 @@ linux-arm64: OS=linux
 linux-arm64: ARCH=arm64
 linux-arm64: build
 build-linux: linux
+
+package-linux-arm64: linux-arm64
+	@echo "[${PROJECT}] Packaging linux/arm64 systemd bundle..."
+	@rm -rf "$(PACKAGE_DIR)"
+	@mkdir -p "$(PACKAGE_DIR)/internal/repo/casbin" "$(PACKAGE_DIR)/deploy/systemd"
+	@cp "$(BUILD_DIR)/$(APP_NAME)" "$(PACKAGE_DIR)/$(APP_NAME)"
+	@cp app.yaml.example "$(PACKAGE_DIR)/app.yaml.example"
+	@cp deploy/install.sh "$(PACKAGE_DIR)/install.sh"
+	@cp deploy/systemd/service.service "$(PACKAGE_DIR)/deploy/systemd/service.service"
+	@cp deploy/systemd/service.env.example "$(PACKAGE_DIR)/deploy/systemd/service.env.example"
+	@cp internal/repo/casbin/model.conf "$(PACKAGE_DIR)/internal/repo/casbin/model.conf"
+	@cp internal/repo/casbin/policy.csv "$(PACKAGE_DIR)/internal/repo/casbin/policy.csv"
+	@echo "✅ Package: $(PACKAGE_DIR)"
 
 run: check-src
 	@echo "🚀 Running (go run)..."

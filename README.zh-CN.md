@@ -112,6 +112,34 @@ make dev-swagger
 5. 只有当你的项目确实需要时，才开启登录二次验证
 6. Swagger 是可选能力，`make dev` 默认不会启用
 
+### 不使用 Docker 部署
+
+面向统信 OS、国产 ARM 服务器这类 Linux/ARM64 环境，可以构建 cgo-free 可执行程序和 systemd 部署包：
+
+```bash
+make package-linux-arm64
+```
+
+把 `build/package/` 复制到目标机器后，用 root 执行：
+
+```bash
+cd build/package
+APP_NAME=service ./install.sh
+systemctl start service
+systemctl status service
+journalctl -u service -f
+```
+
+systemd 单元配置了 `Restart=on-failure` 和 `RestartSec=5`，进程 crash 后会自动拉起；同时用 `StartLimitIntervalSec=60` 和 `StartLimitBurst=10` 限制频繁崩溃时的重启风暴。
+
+部署路径：
+
+- 可执行程序：`/opt/service/service`
+- 配置文件：`/etc/service/app.yaml`
+- 环境变量：`/etc/service/service.env`
+- 日志目录：`/var/log/service`
+- systemd 单元：`/etc/systemd/system/service.service`
+
 认证配置示例：
 
 ```yaml
