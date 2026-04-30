@@ -98,6 +98,13 @@ make build
 make dev
 ```
 
+If you want Swagger in development, generate docs first and then run:
+
+```bash
+make swagger
+make dev-swagger
+```
+
 Before `make dev`, make sure:
 
 1. your database has been created
@@ -106,6 +113,7 @@ Before `make dev`, make sure:
 4. `.env` or `app.yaml` points to the correct database
 5. configure OSS only if you want to enable file upload and download routes
 6. enable login second factor only if your project really needs it
+7. Swagger is optional and is not enabled by default in `make dev`
 
 Authentication config example:
 

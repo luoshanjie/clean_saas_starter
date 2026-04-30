@@ -98,6 +98,13 @@ make build
 make dev
 ```
 
+如果你在开发环境里需要 Swagger，先生成文档，再执行：
+
+```bash
+make swagger
+make dev-swagger
+```
+
 在执行 `make dev` 之前，请确认：
 
 1. 数据库已经创建
@@ -106,6 +113,7 @@ make dev
 4. `.env` 或 `app.yaml` 已正确指向数据库
 5. 只有当你要启用文件上传/下载能力时，才需要继续配置 OSS
 6. 只有当你的项目确实需要时，才开启登录二次验证
+7. Swagger 是可选能力，`make dev` 默认不会启用
 
 认证配置示例：
 
