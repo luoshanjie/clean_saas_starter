@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"service/internal/delivery/http/handler"
-	casbinrepo "service/internal/repo/casbin"
+	"service/internal/domain/port"
 )
 
 type bootstrapHandlers struct {
@@ -16,7 +16,7 @@ type bootstrapHandlers struct {
 
 type handlerDeps struct {
 	repos     *bootstrapRepos
-	perm      *casbinrepo.PermissionChecker
+	perm      port.PermissionChecker
 	idGen     func() string
 	now       func() time.Time
 	jwtSecret string
@@ -25,7 +25,7 @@ type handlerDeps struct {
 
 func newBootstrapHandlers(
 	repos *bootstrapRepos,
-	permChecker *casbinrepo.PermissionChecker,
+	permChecker port.PermissionChecker,
 	idGen func() string,
 	now func() time.Time,
 	jwtSecret string,

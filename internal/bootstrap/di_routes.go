@@ -4,10 +4,10 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"service/internal/delivery/http/middleware"
-	casbinrepo "service/internal/repo/casbin"
+	"service/internal/domain/port"
 )
 
-func registerRoutes(e *echo.Echo, hs *bootstrapHandlers, repos *bootstrapRepos, permChecker *casbinrepo.PermissionChecker) {
+func registerRoutes(e *echo.Echo, hs *bootstrapHandlers, repos *bootstrapRepos, permChecker port.PermissionChecker) {
 	e.GET("/health", hs.healthHandler.Health)
 	api := e.Group("/api/v1")
 	api.POST("/auth/login", hs.authHandler.Login)
