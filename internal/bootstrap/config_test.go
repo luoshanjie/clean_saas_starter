@@ -240,7 +240,6 @@ func TestLoadConfig_UploadCleanupEnvOverrides(t *testing.T) {
 		t.Fatalf("unexpected upload cleanup batch size: %d", cfg.UploadCleanup.BatchSize)
 	}
 }
-
 func clearConfigEnv(t *testing.T) {
 	t.Helper()
 	keys := []string{
@@ -250,6 +249,7 @@ func clearConfigEnv(t *testing.T) {
 		"DB_DSN",
 		"SKIP_DB",
 		"JWT_SECRET",
+		"AUTH_LOGIN_SECOND_FACTOR_ENABLED",
 		"APP_ENV",
 		"OSS_ENDPOINT",
 		"OSS_ACCESS_KEY",
