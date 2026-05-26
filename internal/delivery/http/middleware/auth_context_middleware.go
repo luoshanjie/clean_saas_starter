@@ -12,8 +12,11 @@ import (
 	"service/internal/domain/port"
 )
 
-// AuthContextMiddleware 把鉴权信息写入标准 context.Context 里，供 repo 设置 RLS。
-// 同时校验 token_version，确保改密后旧 token 立刻失效。
+// AuthContextMiddleware writes authenticated user, tenant, and scope data into
+// standard context.Context for usecases and repository adapters. PostgreSQL
+// adapters may use the same context to configure RLS, but RLS is not part of
+// this middleware's contract. It also checks token_version so old tokens become
+// invalid immediately after password changes.
 func AuthContextMiddleware(repo port.AuthRepo) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

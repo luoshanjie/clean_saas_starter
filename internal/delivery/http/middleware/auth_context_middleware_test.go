@@ -38,7 +38,7 @@ func (m mockAuthRepo) UpdatePasswordByUserID(ctx context.Context, userID, passwo
 	return nil
 }
 
-type envRLS struct {
+type envAuthContext struct {
 	Code int `json:"code"`
 }
 
@@ -51,7 +51,7 @@ func TestAuthContextMiddleware_MissingScope(t *testing.T) {
 	mw := middleware.AuthContextMiddleware(mockAuthRepo{v: 1})
 	_ = mw(func(c echo.Context) error { return c.NoContent(http.StatusOK) })(c)
 
-	var r envRLS
+	var r envAuthContext
 	_ = json.Unmarshal(rec.Body.Bytes(), &r)
 	if r.Code != resp.CodeUnauthorized {
 		t.Fatalf("expected unauthorized, got %d", r.Code)
@@ -70,7 +70,7 @@ func TestAuthContextMiddleware_TokenVersionMismatch(t *testing.T) {
 	mw := middleware.AuthContextMiddleware(mockAuthRepo{v: 2})
 	_ = mw(func(c echo.Context) error { return c.NoContent(http.StatusOK) })(c)
 
-	var r envRLS
+	var r envAuthContext
 	_ = json.Unmarshal(rec.Body.Bytes(), &r)
 	if r.Code != resp.CodeUnauthorized {
 		t.Fatalf("expected unauthorized, got %d", r.Code)
@@ -116,7 +116,7 @@ func TestAuthContextMiddleware_MustChangePasswordBlocked(t *testing.T) {
 	})
 	_ = mw(func(c echo.Context) error { return c.NoContent(http.StatusOK) })(c)
 
-	var r envRLS
+	var r envAuthContext
 	_ = json.Unmarshal(rec.Body.Bytes(), &r)
 	if r.Code != resp.CodeForbidden {
 		t.Fatalf("expected forbidden, got %d", r.Code)
