@@ -304,8 +304,13 @@ func (h *{{.EntityName}}Handler) List(c echo.Context) error {
 
 const sqlTemplate = `-- {{.SnakeName}} module queries
 
+-- Portable tenant isolation baseline:
+-- pass tenant_id from authctx/usecase input and include it in every tenant-scoped query.
+
 -- name: Get{{.EntityName}}ByID :one
--- SELECT * FROM {{.PluralName}} WHERE id = $1 LIMIT 1;
+-- SELECT * FROM {{.PluralName}}
+-- WHERE id = $1 AND tenant_id = $2
+-- LIMIT 1;
 
 -- name: List{{.PluralEntityName}} :many
 -- SELECT * FROM {{.PluralName}}
