@@ -72,6 +72,11 @@
 - 内核只提供通用 RBAC 能力
 - Casbin 是默认实现适配器，不是业务层依赖对象
 - 业务模块只能声明自己的权限，不直接耦合 Casbin 细节
+- 权限判断、租户数据范围、数据库 RLS 是三层不同能力：
+  - `PermissionChecker` 判断用户是否允许执行某个动作。
+  - repository contract 负责表达和执行租户/用户数据范围。
+  - PostgreSQL RLS 只能作为 PostgreSQL adapter 的额外防线，不能成为业务权限或租户隔离的唯一实现。
+- 新增非 PostgreSQL 数据库 adapter 时，不要求支持 RLS，但必须通过显式查询条件或等价机制满足相同的租户隔离 contract。
 
 ### 4. Runtime
 

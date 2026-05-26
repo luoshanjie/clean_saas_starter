@@ -25,7 +25,10 @@ func withRLS(ctx context.Context, pool *pgxpool.Pool, fn func(tx pgx.Tx) error) 
 	}
 	defer tx.Rollback(ctx)
 
-	// Merge RLS context setup into one round-trip.
+	// PostgreSQL-only defense layer: set transaction-local context variables
+	// consumed by RLS policies. Portable tenant isolation must still be modeled
+	// in repository contracts so non-PostgreSQL adapters can enforce it without
+	// relying on RLS.
 	if _, err := tx.Exec(ctx, `
 		SELECT
 			set_config('app.scope_type', $1, true),
