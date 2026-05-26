@@ -161,6 +161,17 @@
 - 框架主干不内置多云厂商 SDK；对象存储默认只提供 MinIO 适配器
 - 其他对象存储实现（如阿里云、腾讯云、Cloudflare R2、AWS S3）由使用者自行添加
 
+数据库 adapter 最小 contract：
+
+- 必须实现 domain port，不允许 usecase 直接依赖具体数据库 SDK。
+- 必须支持 `authctx.Info` 中的 `UserID`、`TenantID`、`ScopeType` 语义。
+- 租户级查询必须显式限制 `tenant_id` 或使用数据库等价隔离机制。
+- 平台级查询必须由 usecase 或 repo contract 明确表达，不能靠绕过权限隐式实现。
+- PostgreSQL adapter 可以额外启用 RLS；非 PostgreSQL adapter 不要求支持 RLS。
+- contract test 必须覆盖：租户 A 不能读取/修改租户 B 数据，平台用户可以访问平台级资源，缺失 scope 时拒绝敏感 repo 操作。
+
+新增数据库 adapter 前，必须先提交一组 adapter contract tests。测试通过后再接入 bootstrap 的 `DB_DRIVER` 分支，避免把某个数据库的 SQL 方言泄漏到 usecase。
+
 ## 可选内核能力
 
 这些能力通常属于 SaaS 通用能力，但不要求第一阶段全部落地。应作为内核扩展项，不应混入业务模块。
