@@ -259,7 +259,6 @@ func applyProjectReplacements(raw []byte, source sourceProjectMeta, spec project
 func slugifyProjectName(raw string) string {
 	s := strings.TrimSpace(strings.ToLower(raw))
 	s = strings.ReplaceAll(s, " ", "-")
-	s = strings.ReplaceAll(s, "_", "-")
 	for strings.Contains(s, "--") {
 		s = strings.ReplaceAll(s, "--", "-")
 	}

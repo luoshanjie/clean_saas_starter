@@ -34,6 +34,25 @@ func TestParseProjectSpec_DefaultOutput(t *testing.T) {
 	}
 }
 
+func TestParseProjectSpec_PreservesUnderscore(t *testing.T) {
+	spec, err := parseProjectSpec("ops_service", "", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if spec.Slug != "ops_service" {
+		t.Fatalf("unexpected slug: %s", spec.Slug)
+	}
+	if spec.OutputDir != filepath.Clean("../ops_service") {
+		t.Fatalf("unexpected output dir: %s", spec.OutputDir)
+	}
+	if spec.ModulePath != "ops_service" {
+		t.Fatalf("unexpected module path: %s", spec.ModulePath)
+	}
+	if spec.DBName != "ops_service" {
+		t.Fatalf("unexpected db name: %s", spec.DBName)
+	}
+}
+
 func TestScaffoldProject(t *testing.T) {
 	srcDir := t.TempDir()
 	outDir := filepath.Join(t.TempDir(), "my-saas")
