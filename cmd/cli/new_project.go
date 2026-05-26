@@ -5,8 +5,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -40,9 +42,11 @@ func runNewProjectCommand(args []string) error {
 	var name string
 	var output string
 	var modulePath string
+	var initGit bool
 	fs.StringVar(&name, "name", "", "project name, e.g. my-saas")
-	fs.StringVar(&output, "output", "", "output directory")
+	fs.StringVar(&output, "output", "", "output directory, defaults to ../<project_name>")
 	fs.StringVar(&modulePath, "module-path", "", "go module path, defaults to project name")
+	fs.BoolVar(&initGit, "init-git", false, "initialize a git repository in the generated project")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -59,7 +63,12 @@ func runNewProjectCommand(args []string) error {
 	if err := scaffoldProject(srcRoot, spec); err != nil {
 		return err
 	}
-	printProjectNextSteps(spec)
+	if initGit {
+		if err := initProjectGit(spec.OutputDir); err != nil {
+			return err
+		}
+	}
+	printProjectNextSteps(os.Stdout, spec, initGit)
 	return nil
 }
 
@@ -74,11 +83,11 @@ func parseProjectSpec(name, output, modulePath string) (projectSpec, error) {
 	if !projectNamePattern.MatchString(slug) {
 		return projectSpec{}, fmt.Errorf("invalid project name %q", rawName)
 	}
-	if rawOutput == "" {
-		return projectSpec{}, errors.New("output directory is required")
-	}
 	if rawModulePath == "" {
 		rawModulePath = slug
+	}
+	if rawOutput == "" {
+		rawOutput = filepath.Join("..", slug)
 	}
 	return projectSpec{
 		Name:        rawName,
@@ -184,6 +193,12 @@ func shouldSkipProjectPath(rel string, isDir bool) bool {
 	if normalized == "docs/sqlite-support-plan.md" {
 		return true
 	}
+	if normalized == "docs/superpowers" || strings.HasPrefix(normalized, "docs/superpowers/") {
+		return true
+	}
+	if normalized == "cmd/cli/new_project_test.go" {
+		return true
+	}
 	if strings.HasSuffix(base, ".DS_Store") {
 		return true
 	}
@@ -209,6 +224,10 @@ func mapProjectPath(rel string, source sourceProjectMeta, spec projectSpec) stri
 func applyProjectReplacements(raw []byte, source sourceProjectMeta, spec projectSpec) []byte {
 	replacer := strings.NewReplacer(
 		"# Clean SaaS Starter", "# "+spec.DisplayName,
+		"An open-source multi-tenant SaaS starter for building new systems on top of a reusable kernel instead of starting from a vertical business project.", spec.DisplayName+" backend service built on a reusable SaaS kernel.",
+		"This repository is a generic SaaS scaffold, not a concrete business application.", spec.DisplayName+" backend service generated from Clean SaaS Starter.",
+		"一个开源的多租户 SaaS 脚手架，用于在可复用的内核之上构建新系统，而不是从某个具体业务项目开始演化。", spec.DisplayName+" 后端服务，基于可复用 SaaS 内核构建。",
+		"本仓库是一个通用 SaaS 脚手架，不是某个垂直业务应用。", spec.DisplayName+" 后端服务，由 Clean SaaS Starter 生成。",
 		"module "+source.ModulePath, "module "+spec.ModulePath,
 		"\""+source.ModulePath+"/", "\""+spec.ModulePath+"/",
 		"cmd/"+source.CmdName, "cmd/"+spec.CmdName,
@@ -265,14 +284,29 @@ func containsText(data []byte, text string) bool {
 	return bytes.Contains(data, []byte(text))
 }
 
-func printProjectNextSteps(spec projectSpec) {
-	fmt.Printf("project scaffold ready: %s\n", spec.OutputDir)
-	fmt.Println("next steps:")
-	fmt.Printf("  cd %s\n", spec.OutputDir)
-	fmt.Println("  cp .env.example .env")
-	fmt.Println("  # execute SQL in migrations/pgsql/ for PostgreSQL-compatible databases")
-	fmt.Println("  make build")
-	fmt.Println("  make dev")
+func initProjectGit(outputDir string) error {
+	cmd := exec.Command("git", "init")
+	cmd.Dir = outputDir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("git init: %w: %s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
+}
+
+func printProjectNextSteps(w io.Writer, spec projectSpec, gitInitialized bool) {
+	fmt.Fprintf(w, "project scaffold ready: %s\n", spec.OutputDir)
+	if gitInitialized {
+		fmt.Fprintln(w, "git repository initialized")
+	}
+	fmt.Fprintln(w, "next steps:")
+	fmt.Fprintf(w, "  cd %s\n", spec.OutputDir)
+	fmt.Fprintln(w, "  cp .env.example .env")
+	fmt.Fprintln(w, "  # edit .env and app.yaml.example for database, JWT secret, and storage settings")
+	fmt.Fprintln(w, "  # execute SQL in migrations/pgsql/ for PostgreSQL-compatible databases")
+	fmt.Fprintln(w, "  make build")
+	fmt.Fprintln(w, "  make dev")
+	fmt.Fprintln(w, "  # optional deployment bundle for x86_64 Linux servers")
+	fmt.Fprintln(w, "  make package-linux-amd64")
 }
 
 func detectSourceProjectMeta(srcRoot string) (sourceProjectMeta, error) {

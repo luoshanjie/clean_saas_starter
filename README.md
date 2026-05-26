@@ -71,20 +71,22 @@ Current `oss` config fields:
 Generate a new project from this starter:
 
 ```bash
-go run ./cmd/cli new-project --name my-saas --output ../my-saas
+go run ./cmd/cli new-project --name my-saas
 ```
 
 Optional:
 
 ```bash
-go run ./cmd/cli new-project --name my-saas --output ../my-saas --module-path github.com/acme/my-saas
+go run ./cmd/cli new-project --name my-saas --output ../my-saas --module-path github.com/acme/my-saas --init-git
 ```
 
 The generated project will:
 
 - copy the current starter into the target directory
-- skip local-only files such as `.git`, `.env`, `app.yaml`, `build`, `logs`
+- default the output directory to `../my-saas` when `--output` is omitted
+- skip local-only files such as `.git`, `.env`, `app.yaml`, `build`, `logs`, and `docs/superpowers`
 - replace the default module name, binary name, command path, and example database name
+- initialize a new git repository when `--init-git` is provided
 
 ### Start The Generated Project
 

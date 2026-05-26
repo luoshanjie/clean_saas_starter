@@ -71,20 +71,22 @@
 从当前脚手架生成一个新项目：
 
 ```bash
-go run ./cmd/cli new-project --name my-saas --output ../my-saas
+go run ./cmd/cli new-project --name my-saas
 ```
 
 可选：
 
 ```bash
-go run ./cmd/cli new-project --name my-saas --output ../my-saas --module-path github.com/acme/my-saas
+go run ./cmd/cli new-project --name my-saas --output ../my-saas --module-path github.com/acme/my-saas --init-git
 ```
 
 生成的新项目会：
 
 - 复制当前脚手架到目标目录
-- 跳过 `.git`、`.env`、`app.yaml`、`build`、`logs` 等本地文件
+- 未指定 `--output` 时，默认输出到 `../my-saas`
+- 跳过 `.git`、`.env`、`app.yaml`、`build`、`logs`、`docs/superpowers` 等本地/脚手架内部文件
 - 替换默认模块名、二进制名、命令入口路径、示例数据库名等占位内容
+- 指定 `--init-git` 时初始化一个新的 Git 仓库
 
 ### 启动生成后的项目
 

@@ -23,7 +23,7 @@ func main() {
 	}
 
 	fmt.Fprintln(os.Stderr, "usage:")
-	fmt.Fprintln(os.Stderr, "  go run ./cmd/cli new-project --name <project_name> --output <path>")
+	fmt.Fprintln(os.Stderr, "  go run ./cmd/cli new-project --name <project_name> [--output <path>] [--module-path <module>] [--init-git]")
 	fmt.Fprintln(os.Stderr, "  go run ./cmd/cli new-module --name <module_name>")
 	os.Exit(1)
 }
