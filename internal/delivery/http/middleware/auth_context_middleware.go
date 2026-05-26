@@ -13,10 +13,10 @@ import (
 )
 
 // AuthContextMiddleware writes authenticated user, tenant, and scope data into
-// standard context.Context for usecases and repository adapters. PostgreSQL
-// adapters may use the same context to configure RLS, but RLS is not part of
-// this middleware's contract. It also checks token_version so old tokens become
-// invalid immediately after password changes.
+// standard context.Context for usecases and repository adapters. Database
+// adapters may use the same context for adapter-specific isolation, but that is
+// not part of this middleware's contract. It also checks token_version so old
+// tokens become invalid immediately after password changes.
 func AuthContextMiddleware(repo port.AuthRepo) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
